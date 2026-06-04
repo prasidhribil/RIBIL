@@ -1,59 +1,65 @@
-const API_BASE = "http://localhost:3000";
+function showScreen(screenName) {
 
-async function testBackend() {
+    document
+        .querySelectorAll(".screen")
+        .forEach(screen => {
 
-    const result = document.getElementById("result");
+            screen.classList.remove(
+                "active"
+            );
 
-    try {
+        });
 
-        const response = await fetch(`${API_BASE}/health`);
+    document
+        .getElementById(
+            `screen-${screenName}`
+        )
+        .classList.add("active");
 
-        const data = await response.json();
-
-        result.innerHTML = `
-            <h3>Backend Connected</h3>
-            <p>Status: ${data.status}</p>
-            <p>Service: ${data.service}</p>
-        `;
-
-    } catch (error) {
-
-        console.error(error);
-
-        result.innerHTML = `
-            <h3>Connection Failed</h3>
-        `;
-    }
 }
 
-async function startVerification() {
+function showToast(message) {
 
-    const result = document.getElementById("result");
-
-    try {
-
-        const response = await fetch(
-            `${API_BASE}/api/verification/start`
+    const toast =
+        document.getElementById(
+            "toast"
         );
 
-        const data = await response.json();
+    const msg =
+        document.getElementById(
+            "toast-msg"
+        );
 
-        result.innerHTML = `
-            <h3>Verification Started</h3>
+    msg.textContent = message;
 
-            <p><b>Survey Number:</b> ${data.surveyNumber}</p>
+    toast.classList.add("show");
 
-            <p><b>Village:</b> ${data.village}</p>
+    setTimeout(() => {
 
-            <p><b>Status:</b> ${data.status}</p>
-        `;
+        toast.classList.remove(
+            "show"
+        );
 
-    } catch (error) {
+    }, 3000);
+}
+
+window.onload = async () => {
+
+    try {
+
+        const health =
+            await getHealth();
+
+        console.log(
+            "Backend Connected",
+            health
+        );
+
+    }
+    catch(error){
 
         console.error(error);
 
-        result.innerHTML = `
-            <h3>Verification Failed</h3>
-        `;
     }
-}
+
+};

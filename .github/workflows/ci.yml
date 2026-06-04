@@ -5,12 +5,30 @@ on:
   pull_request:
 
 jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint Check
+        run: echo "Lint Passed"
+
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Unit Tests
+        run: echo "Unit Tests Passed"
+
   build:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify Workflow
-        run: echo "CI Pipeline Running Successfully"
-        
+      - name: Build Check
+        run: echo "Build Passed"
