@@ -1,0 +1,26 @@
+{
+  "info": {
+    "name": "RIBIL API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/health"
+        }
+      }
+    },
+    {
+      "name": "Start Verification",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:3000/api/verification/start"
+        }
+      }
+    }
+  ]
+}
