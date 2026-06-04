@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alstonaire — Karnataka Land Verification</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
+ 
+  <style>
+    /* ───────────────────────────────────────────────
+       CSS VARIABLES & RESET
+    ─────────────────────────────────────────────── */
+    :root {
+      --green:      #166534;
+      --green-mid:  #15803d;
+      --green-light:#dcfce7;
+      --amber:      #92400e;
+      --amber-light:#fef3c7;
+      --red:        #991b1b;
+      --red-light:  #fee2e2;
+      --ink:        #0f1a14;
+      --ink-60:     #4a5e52;
+      --ink-30:     #9ab0a0;
+      --paper:      #f7f9f7;
+      --paper-2:    #eef2ee;
+      --white:      #ffffff;
+      --border:     #d4e0d6;
+      --shadow-sm:  0 1px 4px rgba(15,26,20,0.08);
+      --shadow-md:  0 4px 16px rgba(15,26,20,0.10);
+      --shadow-lg:  0 12px 40px rgba(15,26,20,0.14);
+      --radius:     12px;
+      --radius-lg:  20px;
+      --font-serif: 'DM Serif Display', Georgia, serif;
+      --font-sans:  'DM Sans', system-ui, sans-serif;
+      --transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+ 
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { display: block; max-width: 100%; }
+    button { cursor: pointer; font-family: inherit; }
+    input, select, textarea { font-family: inherit; }
+    a { text-decoration: none; color: inherit; }
+ 
+    /* ───────────────────────────────────────────────
+       UTILITY
+    ─────────────────────────────────────────────── */
+    .hidden   { display: none !important; }
+    .sr-only  { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 99px;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .badge-green  { background: var(--green-light); color: var(--green); }
+    .badge-amber  { background: var(--amber-light); color: var(--amber); }
+    .badge-red    { background: var(--red-light);   color: var(--red); }
+    .badge-neutral{ background: var(--paper-2); color: var(--ink-60); }
+ 
+    /* ───────────────────────────────────────────────
+       LAYOUT WRAPPERS
+    ─────────────────────────────────────────────── */
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+    .container { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+ 
+    /* ───────────────────────────────────────────────
+       NAV
+    ─────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(247,249,247,0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 62px; gap: 20px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: var(--font-serif); font-size: 20px; color: var(--ink);
+    }
+    .logo-mark {
+      width: 34px; height: 34px;
+      background: var(--green); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 16px; font-weight: 700;
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: 4px;
+      list-style: none;
+    }
+    .nav-links a {
+      padding: 7px 14px; border-radius: 8px;
+      font-size: 14px; font-weight: 500; color: var(--ink-60);
+      transition: var(--transition);
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: var(--ink); background: var(--paper-2);
+    }
+    .nav-cta {
+      display: flex; gap: 8px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 9px 20px; border-radius: 9px; font-weight: 600;
+      font-size: 14px; border: none; transition: var(--transition);
+      white-space: nowrap;
+    }
+    .btn-ghost {
+      background: transparent; color: var(--ink-60);
+      border: 1.5px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--paper-2); color: var(--ink); }
+    .btn-primary {
+      background: var(--green); color: #fff;
+    }
+    .btn-primary:hover { background: var(--green-mid); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(22,101,52,0.25); }
+    .btn-primary:active { transform: none; }
+    .btn-lg { padding: 13px 28px; font-size: 15px; border-radius: 11px; }
+    .btn-outline {
+      background: transparent; color: var(--green);
+      border: 2px solid var(--green);
+    }
+    .btn-outline:hover { background: var(--green-light); }
+ 
+    /* ───────────────────────────────────────────────
+       SCREEN ROUTING (SPA logic via JS)
+    ─────────────────────────────────────────────── */
+    .screen { display: none; flex: 1; }
+    .screen.active { display: flex; flex-direction: column; }
+ 
+    /* ═══════════════════════════════════════════════
+       SCREEN 1 — LANDING
+    ═══════════════════════════════════════════════ */
+    /* Hero */
+    .hero {
+      padding: 72px 0 64px;
+      background: linear-gradient(155deg, #fff 0%, #f0f6f0 100%);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      position: relative;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle at 80% 20%, rgba(22,101,52,0.07) 0%, transparent 60%),
+                        radial-gradient(circle at 20% 80%, rgba(22,101,52,0.04) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .hero-inner {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--green-light); color: var(--green);
+      font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+      padding: 5px 14px; border-radius: 99px; margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-family: var(--font-serif);
+      font-size: 52px; line-height: 1.1; letter-spacing: -0.02em;
+      color: var(--ink); margin-bottom: 20px;
+    }
+    .hero h1 em { font-style: italic; color: var(--green-mid); }
+    .hero-sub {
+      font-size: 17px; color: var(--ink-60); line-height: 1.7;
+      max-width: 480px; margin-bottom: 36px;
+    }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-stats {
+      display: flex; gap: 32px; margin-top: 48px; padding-top: 32px;
+      border-top: 1px solid var(--border);
+    }
+    .stat-item { display: flex; flex-direction: column; gap: 2px; }
+    .stat-num {
+      font-family: var(--font-serif); font-size: 28px; color: var(--ink);
+    }
+    .stat-label { font-size: 13px; color: var(--ink-60); }
+ 
+    /* Hero right: mock report card */
+    .hero-card {
+      background: var(--white); border-radius: var(--radius-lg);
+      border: 1px solid var(--border); box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+    .hero-card-header {
+      background: var(--ink); padding: 18px 20px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .hero-card-header .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .hero-card-header .title {
+      color: #fff; font-size: 13px; font-weight: 600; margin-left: 4px;
+    }
+    .hero-card-body { padding: 20px; }
+    .report-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-radius: 8px; margin-bottom: 6px;
+      background: var(--paper);
+    }
+    .report-row-label { font-size: 13px; color: var(--ink-60); display: flex; align-items: center; gap: 8px; }
+    .report-row-label .icon { font-size: 15px; }
+    .risk-circle {
+      width: 70px; height: 70px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; margin: 20px auto 8px;
+      font-weight: 700;
+    }
+    .risk-circle.green  { background: var(--green-light); color: var(--green); border: 3px solid var(--green); }
+    .risk-circle.amber  { background: var(--amber-light); color: var(--amber); border: 3px solid #d97706; }
+    .risk-circle.red    { background: var(--red-light); color: var(--red); border: 3px solid #dc2626; }
+    .risk-circle .score { font-size: 22px; line-height: 1; }
+    .risk-circle .label { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+ 
+    /* How it works */
+    .section { padding: 72px 0; }
+    .section-tag {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--green); margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: var(--font-serif); font-size: 38px; line-height: 1.18;
+      letter-spacing: -0.015em; color: var(--ink); max-width: 520px;
+      margin-bottom: 48px;
+    }
+    .steps-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 24px; }
+    .step-card {
+      background: var(--white); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 24px;
+      transition: var(--transition);
+    }
+    .step-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; margin-bottom: 16px;
+    }
+    .step-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .step-card p { font-size: 13px; color: var(--ink-60); line-height: 1.6; }
+ 
+    /* Pillars */
+    .pillars-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; }
+    .pillar-card {
+      background: var(--white); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 28px; display: flex; gap: 20px;
+      transition: var(--transition);
+    }
+    .pillar-card:hover { box-shadow: var(--shadow-md); }
+    .pillar-icon {
+      width: 48px; height: 48px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .pillar-icon.loc   { background: #dbeafe; }
+    .pillar-icon.rev   { background: #fef9c3; }
+    .pillar-icon.legal { background: #fce7f3; }
+    .pillar-icon.per   { background: var(--green-light); }
+    .pillar-body h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .pillar-body p  { font-size: 13px; color: var(--ink-60); line-height: 1.55; }
+ 
+    /* Pricing */
+    .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+    .pricing-card {
+      background: var(--white); border-radius: var(--radius-lg);
+      border: 1px solid var(--border); padding: 32px; position: relative;
+    }
+    .pricing-card.featured {
+      border-color: var(--green); box-shadow: 0 0 0 3px rgba(22,101,52,0.1);
+    }
+    .pricing-featured-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--green); color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 4px 14px; border-radius: 99px; white-space: nowrap;
+      text-transform: uppercase;
+    }
+    .pricing-name { font-size: 13px; font-weight: 600; color: var(--ink-60); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .pricing-amount { font-family: var(--font-serif); font-size: 40px; color: var(--ink); line-height: 1; margin-bottom: 4px; }
+    .pricing-amount span { font-size: 18px; }
+    .pricing-period { font-size: 13px; color: var(--ink-30); margin-bottom: 24px; }
+    .pricing-features { list-style: none; margin-bottom: 28px; }
+    .pricing-features li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 13px; color: var(--ink-60); padding: 5px 0;
+    }
+    .pricing-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+ 
+    /* CTA Strip */
+    .cta-strip {
+      background: var(--ink); padding: 64px 0;
+    }
+    .cta-strip-inner {
+      text-align: center;
+    }
+    .cta-strip h2 {
+      font-family: var(--font-serif); font-size: 40px; color: #fff;
+      margin-bottom: 16px; letter-spacing: -0.015em;
+    }
+    .cta-strip p { color: rgba(255,255,255,0.65); margin-bottom: 36px; font-size: 16px; }
+ 
+    /* Footer */
+    footer {
+      background: var(--ink); border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 40px 0 28px;
+    }
+    .footer-inner {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-logo { font-family: var(--font-serif); font-size: 18px; color: rgba(255,255,255,0.8); }
+    .footer-copy { font-size: 13px; color: rgba(255,255,255,0.4); }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 13px; color: rgba(255,255,255,0.4); }
+    .footer-links a:hover { color: rgba(255,255,255,0.8); }
+ 
+    /* ═══════════════════════════════════════════════
+       SCREEN 2 — SEARCH / PIN-DROP
+    ═══════════════════════════════════════════════ */
+    .search-layout {
+      display: grid; grid-template-columns: 360px 1fr;
+      min-height: calc(100vh - 62px);
+    }
+    .search-sidebar {
+      background: var(--white); border-right: 1px solid var(--border);
+      padding: 28px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px;
+    }
+    .sidebar-title {
+      font-family: var(--font-serif); font-size: 22px; color: var(--ink);
+    }
+    .sidebar-sub { font-size: 13px; color: var(--ink-60); margin-top: 4px; }
+ 
+    /* Search input */
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-label { font-size: 12px; font-weight: 600; color: var(--ink-60); letter-spacing: 0.04em; text-transform: uppercase; }
+    .input-wrap { position: relative; }
+    .input-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-30); }
+    input[type="text"], input[type="email"], input[type="password"], select {
+      width: 100%; padding: 10px 12px 10px 38px;
+      border: 1.5px solid var(--border); border-radius: 9px;
+      font-size: 14px; color: var(--ink); background: var(--paper);
+      transition: var(--transition); outline: none;
+    }
+    input[type="text"]:focus, input[type="email"]:focus,
+    input[type="password"]:focus, select:focus {
+      border-color: var(--green); background: #fff;
+      box-shadow: 0 0 0 3px rgba(22,101,52,0.1);
+    }
+    input.no-icon { padding-left: 12px; }
+    select { padding-left: 12px; appearance: none; }
+    .or-divider {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 12px; color: var(--ink-30);
+    }
+    .or-divider::before, .or-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+ 
+    /* Map mock */
+    .map-area {
+      background: #e8f0e8;
+      position: relative; display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .map-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(22,101,52,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(22,101,52,0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .map-roads {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.6) 3px, transparent 3px),
+        linear-gradient(90deg, rgba(255,255,255,0.6) 3px, transparent 3px);
+      background-size: 160px 120px;
+    }
+    .map-pin {
+      position: relative; z-index: 2; cursor: pointer;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+    .map-pin-body {
+      width: 44px; height: 44px; background: var(--green); border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg); display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-md);
+    }
+    .map-pin-body svg { transform: rotate(45deg); }
+    .map-pin-shadow {
+      width: 24px; height: 8px;
+      background: rgba(15,26,20,0.2); border-radius: 50%;
+      margin: 4px auto 0;
+    }
+    .map-tooltip {
+      position: absolute; bottom: calc(100% + 12px); left: 50%; transform: translateX(-50%);
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 16px; white-space: nowrap;
+      box-shadow: var(--shadow-md);
+    }
+    .map-tooltip::after {
+      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      border: 6px solid transparent; border-top-color: var(--white);
+    }
+    .map-tooltip-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .map-tooltip-sub { font-size: 11px; color: var(--ink-60); }
+ 
+    /* Map controls overlay */
+    .map-controls {
+      position: absolute; top: 20px; right: 20px; z-index: 10;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .map-ctrl-btn {
+      width: 38px; height: 38px; border-radius: 8px;
+      background: var(--white); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; box-shadow: var(--shadow-sm);
+      cursor: pointer; transition: var(--transition);
+    }
+    .map-ctrl-btn:hover { background: var(--paper); }
+ 
+    /* Coordinate display */
+    .coord-display {
+      position: absolute; bottom: 20px; left: 20px; z-index: 10;
+      background: rgba(15,26,20,0.85); color: #fff; backdrop-filter: blur(8px);
+      padding: 8px 14px; border-radius: 8px; font-size: 12px; font-family: monospace;
+    }
+ 
+    /* ═══════════════════════════════════════════════
+       SCREEN 3 — VERIFICATION PIPELINE (PROGRESS)
+    ═══════════════════════════════════════════════ */
+    .verify-layout {
+      flex: 1; display: grid; grid-template-columns: 1fr 380px;
+      min-height: calc(100vh - 62px);
+    }
+    .verify-main { padding: 36px 48px; overflow-y: auto; }
+    .verify-side {
+      background: var(--white); border-left: 1px solid var(--border);
+      padding: 28px; display: flex; flex-direction: column; gap: 20px;
+      overflow-y: auto;
+    }
+ 
+    .verify-header { margin-bottom: 32px; }
+    .verify-header h2 { font-family: var(--font-serif); font-size: 28px; margin-bottom: 6px; }
+    .verify-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+    .verify-meta-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--ink-60); }
+ 
+    /* Progress bar */
+    .progress-bar-wrap { margin-bottom: 32px; }
+    .progress-bar-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+    .progress-label { font-size: 13px; font-weight: 600; color: var(--ink-60); }
+    .progress-pct { font-size: 13px; font-weight: 700; color: var(--green); }
+    .progress-bar {
+      height: 8px; background: var(--paper-2); border-radius: 4px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--green) 0%, #22c55e 100%);
+      border-radius: 4px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+ 
+    /* Check list */
+    .checks-list { display: flex; flex-direction: column; gap: 8px; }
+    .check-item {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--white);
+      transition: var(--transition);
+    }
+    .check-item.passed { border-color: #bbf7d0; background: #f0fdf4; }
+    .check-item.flagged { border-color: #fde68a; background: #fffbeb; }
+    .check-item.failed  { border-color: #fecaca; background: #fef2f2; }
+    .check-item.running { border-color: #bfdbfe; background: #eff6ff; }
+    .check-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .check-item.passed  .check-icon { background: #dcfce7; }
+    .check-item.flagged .check-icon { background: #fef3c7; }
+    .check-item.failed  .check-icon { background: #fee2e2; }
+    .check-item.running .check-icon { background: #dbeafe; }
+    .check-item.pending .check-icon { background: var(--paper-2); }
+    .check-info { flex: 1; }
+    .check-name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+    .check-detail { font-size: 12px; color: var(--ink-60); }
+    .check-status { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+    .check-item.passed  .check-status { color: var(--green); }
+    .check-item.flagged .check-status { color: var(--amber); }
+    .check-item.failed  .check-status { color: var(--red); }
+    .check-item.running .check-status { color: #2563eb; }
+    .check-item.pending .check-status { color: var(--ink-30); }
+ 
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px; border: 2px solid #bfdbfe;
+      border-top-color: #2563eb; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+ 
+    /* Property summary card (sidebar) */
+    .prop-summary {
+      background: var(--paper); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 18px;
+    }
+    .prop-summary-title { font-size: 12px; font-weight: 700; color: var(--ink-60); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+    .prop-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .prop-row:last-child { border-bottom: none; }
+    .prop-row-k { font-size: 12px; color: var(--ink-60); }
+    .prop-row-v { font-size: 12px; font-weight: 600; color: var(--ink); text-align: right; max-width: 180px; }
+ 
+    /* ═══════════════════════════════════════════════
+       SCREEN 4 — REPORT VIEW
+    ═══════════════════════════════════════════════ */
+    .report-layout {
+      flex: 1; max-width: 900px; margin: 0 auto;
+      padding: 40px 24px; width: 100%;
+    }
+    .report-topbar {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;
+    }
+    .report-topbar h2 { font-family: var(--font-serif); font-size: 26px; }
+    .report-actions { display: flex; gap: 10px; }
+ 
+    .report-cover {
+      background: var(--ink); border-radius: var(--radius-lg);
+      padding: 40px; margin-bottom: 28px; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .report-cover-left h3 { font-family: var(--font-serif); font-size: 28px; color: #fff; margin-bottom: 8px; }
+    .report-cover-left p { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 20px; }
+    .report-cover-meta { display: flex; flex-direction: column; gap: 6px; }
+    .report-cover-meta-item { display: flex; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.7); }
+    .report-cover-meta-item strong { color: #fff; }
+    .risk-score-circle {
+      width: 110px; height: 110px; border-radius: 50%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.08); border: 3px solid;
+      flex-shrink: 0;
+    }
+    .risk-score-circle.green { border-color: #4ade80; }
+    .risk-score-circle.amber { border-color: #fbbf24; }
+    .risk-score-circle.red   { border-color: #f87171; }
+    .risk-score-num { font-family: var(--font-serif); font-size: 38px; color: #fff; line-height: 1; }
+    .risk-score-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-top: 4px; }
+    .risk-score-circle.green .risk-score-lbl { color: #4ade80; }
+    .risk-score-circle.amber .risk-score-lbl { color: #fbbf24; }
+    .risk-score-circle.red   .risk-score-lbl { color: #f87171; }
+ 
+    /* Report sections */
+    .report-section {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .report-section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; cursor: pointer; user-select: none;
+      transition: var(--transition);
+    }
+    .report-section-header:hover { background: var(--paper); }
+    .report-section-left { display: flex; align-items: center; gap: 12px; }
+    .report-section-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+    }
+    .report-section-title { font-size: 15px; font-weight: 600; }
+    .report-section-body { padding: 0 22px 20px; border-top: 1px solid var(--border); }
+    .report-section-body[hidden] { display: none; }
+ 
+    /* Report table */
+    .rtable { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    .rtable th {
+      font-size: 11px; font-weight: 700; color: var(--ink-60);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 8px 12px; text-align: left;
+      background: var(--paper); border-bottom: 1px solid var(--border);
+    }
+    .rtable td {
+      font-size: 13px; padding: 10px 12px;
+      border-bottom: 1px solid var(--border); color: var(--ink);
+    }
+    .rtable tr:last-child td { border-bottom: none; }
+    .rtable tr.flagged-row td { background: #fffbeb; }
+    .flag-pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+    }
+    .flag-pill.green { background: var(--green-light); color: var(--green); }
+    .flag-pill.amber { background: var(--amber-light); color: var(--amber); }
+    .flag-pill.red   { background: var(--red-light);   color: var(--red); }
+ 
+    /* ═══════════════════════════════════════════════
+       SCREEN 5 — AUTH (LOGIN / REGISTER)
+    ═══════════════════════════════════════════════ */
+    .auth-layout {
+      flex: 1; display: grid; grid-template-columns: 1fr 1fr;
+      min-height: calc(100vh - 62px);
+    }
+    .auth-panel {
+      display: flex; align-items: center; justify-content: center;
+      padding: 48px 32px;
+    }
+    .auth-form-wrap { width: 100%; max-width: 400px; }
+    .auth-title { font-family: var(--font-serif); font-size: 32px; margin-bottom: 8px; }
+    .auth-sub { font-size: 14px; color: var(--ink-60); margin-bottom: 32px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .form-label { font-size: 12px; font-weight: 600; color: var(--ink-60); letter-spacing: 0.04em; text-transform: uppercase; }
+    .auth-switch { font-size: 13px; color: var(--ink-60); margin-top: 24px; text-align: center; }
+    .auth-switch a { color: var(--green); font-weight: 600; cursor: pointer; }
+    .auth-visual {
+      background: linear-gradient(145deg, var(--ink) 0%, #1a2e22 100%);
+      display: flex; align-items: center; justify-content: center; padding: 48px;
+    }
+    .auth-visual-inner { color: #fff; max-width: 380px; }
+    .auth-visual h2 { font-family: var(--font-serif); font-size: 36px; margin-bottom: 16px; line-height: 1.2; }
+    .auth-visual p { font-size: 15px; color: rgba(255,255,255,0.65); margin-bottom: 36px; line-height: 1.7; }
+    .trust-items { display: flex; flex-direction: column; gap: 12px; }
+    .trust-item { display: flex; align-items: center; gap: 12px; font-size: 14px; color: rgba(255,255,255,0.8); }
+    .trust-item .ti { font-size: 20px; }
+    .role-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .role-option { border: 1.5px solid var(--border); border-radius: 9px; padding: 12px; cursor: pointer; transition: var(--transition); }
+    .role-option.selected { border-color: var(--green); background: var(--green-light); }
+    .role-option-icon { font-size: 20px; margin-bottom: 6px; }
+    .role-option-label { font-size: 13px; font-weight: 600; }
+    .role-option-sub { font-size: 11px; color: var(--ink-60); }
+ 
+    /* ═══════════════════════════════════════════════
+       SCREEN 6 — DASHBOARD
+    ═══════════════════════════════════════════════ */
+    .dash-layout {
+      display: grid; grid-template-columns: 220px 1fr;
+      min-height: calc(100vh - 62px); flex: 1;
+    }
+    .dash-sidebar {
+      background: var(--white); border-right: 1px solid var(--border);
+      padding: 24px 16px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .dash-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; border-radius: 9px; font-size: 14px;
+      font-weight: 500; color: var(--ink-60); cursor: pointer;
+      transition: var(--transition);
+    }
+    .dash-nav-item:hover { background: var(--paper); color: var(--ink); }
+    .dash-nav-item.active { background: var(--green-light); color: var(--green); font-weight: 600; }
+    .dash-nav-item .icon { font-size: 17px; }
+    .dash-content { padding: 36px 40px; overflow-y: auto; }
+    .dash-title { font-family: var(--font-serif); font-size: 28px; margin-bottom: 28px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 32px; }
+    .kpi-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .kpi-label { font-size: 12px; color: var(--ink-60); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .kpi-value { font-family: var(--font-serif); font-size: 32px; color: var(--ink); margin-bottom: 4px; }
+    .kpi-delta { font-size: 12px; color: var(--green); }
+ 
+    .recent-table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .recent-table-header { padding: 18px 22px; font-size: 15px; font-weight: 600; border-bottom: 1px solid var(--border); }
+    .recent-table { width: 100%; border-collapse: collapse; }
+    .recent-table th {
+      font-size: 11px; font-weight: 700; color: var(--ink-60);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 10px 20px; text-align: left; background: var(--paper);
+    }
+    .recent-table td { padding: 14px 20px; border-top: 1px solid var(--border); font-size: 13px; }
+    .recent-table tr:hover td { background: var(--paper); }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 6px; font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+    .status-pill.verified { background: var(--green-light); color: var(--green); }
+    .status-pill.verified::before { background: var(--green); }
+    .status-pill.verifying { background: #dbeafe; color: #1d4ed8; }
+    .status-pill.verifying::before { background: #3b82f6; }
+    .status-pill.pending { background: var(--paper-2); color: var(--ink-60); }
+    .status-pill.pending::before { background: var(--ink-30); }
+ 
+    /* ───────────────────────────────────────────────
+       TOAST NOTIFICATION
+    ─────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px; z-index: 1000;
+      background: var(--ink); color: #fff;
+      padding: 14px 20px; border-radius: 12px;
+      font-size: 14px; box-shadow: var(--shadow-lg);
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+      max-width: 320px; display: flex; align-items: center; gap: 10px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+ 
+    /* ───────────────────────────────────────────────
+       RESPONSIVE
+    ─────────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .hero-inner { grid-template-columns: 1fr; }
+      .hero-card { display: none; }
+      .steps-grid { grid-template-columns: repeat(2,1fr); }
+      .pillars-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .search-layout { grid-template-columns: 1fr; }
+      .map-area { min-height: 320px; }
+      .verify-layout { grid-template-columns: 1fr; }
+      .verify-side { display: none; }
+      .auth-layout { grid-template-columns: 1fr; }
+      .auth-visual { display: none; }
+      .dash-layout { grid-template-columns: 1fr; }
+      .dash-sidebar { display: none; }
+      .kpi-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+ 
+<!-- ═══════════════════════════════════ NAV -->
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="logo" onclick="showScreen('landing')">
+      <div class="logo-mark">A</div>
+      Alstonaire
+    </a>
+    <ul class="nav-links">
+      <li><a href="#" onclick="showScreen('landing')" id="nav-home">Home</a></li>
+      <li><a href="#" onclick="showScreen('search')" id="nav-search">Verify Land</a></li>
+      <li><a href="#" onclick="showScreen('dashboard')" id="nav-dash">Dashboard</a></li>
+    </ul>
+    <div class="nav-cta">
+      <button class="btn btn-ghost" onclick="showScreen('auth')">Log In</button>
+      <button class="btn btn-primary" onclick="showScreen('auth')">Get Started</button>
+    </div>
+  </div>
+</nav>
+ 
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg">Action completed</span>
+</div>
+ 
+<!-- ═══════════════════════════════════ SCREEN 1: LANDING -->
+<div class="page screen active" id="screen-landing">
+ 
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-left">
+        <div class="hero-eyebrow">
+          <span>🛡️</span> Karnataka Land Verification
+        </div>
+        <h1>Drop a pin.<br><em>Get the truth</em><br>about the land.</h1>
+        <p class="hero-sub">
+          Automated due diligence for Karnataka land buyers. One pin on the map — we pull ownership records, court cases, encumbrances, utility checks, and criminal background from every government portal. No agents. No portals. One report.
+        </p>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg" onclick="showScreen('search')">
+            🗺️ Verify a Plot Now
+          </button>
+          <button class="btn btn-outline btn-lg" onclick="showScreen('auth')">
+            Create Free Account
+          </button>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-num">9+</span>
+            <span class="stat-label">Gov't Portals</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">14</span>
+            <span class="stat-label">Checks per Plot</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">₹0</span>
+            <span class="stat-label">Agent Fees</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">KA</span>
+            <span class="stat-label">Karnataka-First</span>
+          </div>
+        </div>
+      </div>
+      <div class="hero-card" aria-hidden="true">
+        <div class="hero-card-header">
+          <div class="dot" style="background:#ef4444"></div>
+          <div class="dot" style="background:#f59e0b"></div>
+          <div class="dot" style="background:#22c55e"></div>
+          <span class="title">Verification Report · Sy No. 47/3, Whitefield</span>
+        </div>
+        <div class="hero-card-body">
+          <div class="risk-circle green">
+            <span class="score">72</span>
+            <span class="label">Green</span>
+          </div>
+          <p style="text-align:center;font-size:12px;color:var(--ink-30);margin-bottom:16px">Overall Risk Score</p>
+          <div class="report-row">
+            <span class="report-row-label"><span class="icon">📋</span> RTC / Pahani</span>
+            <span class="badge badge-green">✓ Clear</span>
+          </div>
+          <div class="report-row">
+            <span class="report-row-label"><span class="icon">📄</span> Encumbrance Cert (30yr)</span>
+            <span class="badge badge-green">✓ Clear</span>
+          </div>
+          <div class="report-row">
+            <span class="report-row-label"><span class="icon">⚖️</span> eCourts Litigation</span>
+            <span class="badge badge-green">✓ None</span>
+          </div>
+          <div class="report-row">
+            <span class="report-row-label"><span class="icon">🌊</span> Lake Buffer Check</span>
+            <span class="badge badge-amber">⚠ 130m</span>
+          </div>
+          <div class="report-row">
+            <span class="report-row-label"><span class="icon">💡</span> BESCOM Connection</span>
+            <span class="badge badge-green">✓ Active</span>
+          </div>
+          <div class="report-row">
+            <span class="report-row-label"><span class="icon">🔍</span> Criminal Records</span>
+            <span class="badge badge-green">✓ Clean</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- How it works -->
+  <section class="section" style="background:var(--white)">
+    <div class="container">
+      <p class="section-tag">How it works</p>
+      <h2 class="section-title">From pin to report in minutes</h2>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3>Drop a Google Pin</h3>
+          <p>Open the map and place a pin on any plot in Karnataka. No survey number needed — just point at the land.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3>We Detect the Survey Number</h3>
+          <p>Our GIS engine overlays village cadastral maps and runs a point-in-polygon query to identify the exact survey number in milliseconds.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3>14 Checks Run in Parallel</h3>
+          <p>Bhoomi, Kaveri, eCourts, BDA, BESCOM, BWSSB, BBMP and more — all automated. No CAPTCHA, no portals.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <h3>Download Your Report</h3>
+          <p>A colour-coded PDF lands in your inbox with Green/Amber/Red risk flags across all 14 checks. Ready in minutes.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- Four Pillars -->
+  <section class="section">
+    <div class="container">
+      <p class="section-tag">What we verify</p>
+      <h2 class="section-title">Four pillars of complete due diligence</h2>
+      <div class="pillars-grid">
+        <div class="pillar-card">
+          <div class="pillar-icon loc">📍</div>
+          <div class="pillar-body">
+            <h3>Location &amp; Zone</h3>
+            <p>CDP zone classification, lake buffer (75m/150m), NGT tribunal orders, AAI airport buffer, proximity to water bodies and forests — everything that affects what you can build.</p>
+          </div>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon rev">📋</div>
+          <div class="pillar-body">
+            <h3>Revenue &amp; Documents</h3>
+            <p>RTC/Pahani, full mutation register (ownership chain), 30-year Encumbrance Certificate from Kaveri, Khata, property tax receipts — the complete legal document trail.</p>
+          </div>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon legal">⚖️</div>
+          <div class="pillar-body">
+            <h3>Legal &amp; Court Cases</h3>
+            <p>eCourts API (district + HC + SC), BDA acquisition notices, layout approval status, RERA registration, lake/water body encroachment flags — every active legal risk.</p>
+          </div>
+        </div>
+        <div class="pillar-card">
+          <div class="pillar-icon per">👤</div>
+          <div class="pillar-body">
+            <h3>Owner Background</h3>
+            <p>Aadhaar/PAN linkage, CCTNS criminal records (via AuthBridge), CIBIL flag, joint ownership check, and full 30+ year ownership chain from Bhoomi mutation history.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- Pricing -->
+  <section class="section" style="background:var(--white)">
+    <div class="container">
+      <p class="section-tag">Pricing</p>
+      <h2 class="section-title">Transparent pricing, no agent fees</h2>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <p class="pricing-name">Starter</p>
+          <p class="pricing-amount"><span>₹</span>499</p>
+          <p class="pricing-period">per verification report</p>
+          <ul class="pricing-features">
+            <li>RTC, Pahani, Mutation check</li>
+            <li>30-year Encumbrance Certificate</li>
+            <li>eCourts litigation check</li>
+            <li>CDP Zone classification</li>
+            <li>PDF report download</li>
+          </ul>
+          <button class="btn btn-outline" style="width:100%" onclick="showScreen('auth')">Get Started</button>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-featured-badge">Most Popular</div>
+          <p class="pricing-name">Complete</p>
+          <p class="pricing-amount"><span>₹</span>999</p>
+          <p class="pricing-period">per verification report</p>
+          <ul class="pricing-features">
+            <li>Everything in Starter</li>
+            <li>Owner criminal background (CCTNS)</li>
+            <li>BESCOM, BWSSB, BBMP utility checks</li>
+            <li>Lake/NGT/AAI zone checks</li>
+            <li>AI price estimate &amp; risk score</li>
+            <li>Verified owner identity check</li>
+          </ul>
+          <button class="btn btn-primary" style="width:100%" onclick="showScreen('auth')">Get Started</button>
+        </div>
+        <div class="pricing-card">
+          <p class="pricing-name">Agent</p>
+          <p class="pricing-amount"><span>₹</span>4,999</p>
+          <p class="pricing-period">per month · up to 20 reports</p>
+          <ul class="pricing-features">
+            <li>Everything in Complete</li>
+            <li>Bulk verify up to 20 plots</li>
+            <li>Client dashboard &amp; report sharing</li>
+            <li>Branded PDF reports</li>
+            <li>Priority support</li>
+            <li>Saved search alerts</li>
+          </ul>
+          <button class="btn btn-outline" style="width:100%" onclick="showScreen('auth')">Contact Us</button>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- CTA Strip -->
+  <section class="cta-strip">
+    <div class="container cta-strip-inner">
+      <h2>Don't pay ₹50,000 to an agent<br>for data that should be free.</h2>
+      <p>Alstonaire automates 9 government portals so you get complete due diligence in minutes, not weeks.</p>
+      <button class="btn btn-primary btn-lg" onclick="showScreen('search')">
+        🗺️ Try it — Drop a Pin Now
+      </button>
+    </div>
+  </section>
+ 
+  <!-- Footer -->
+  <footer>
+    <div class="container footer-inner">
+      <span class="footer-logo">Alstonaire</span>
+      <div class="footer-links">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Disclaimer</a>
+      </div>
+      <span class="footer-copy">© 2025 Alstonaire Technologies · RV University CS Project</span>
+    </div>
+  </footer>
+</div>
+ 
+<!-- ═══════════════════════════════════ SCREEN 2: SEARCH -->
+<div class="page screen" id="screen-search">
+  <div class="search-layout">
+    <!-- Sidebar -->
+    <aside class="search-sidebar">
+      <div>
+        <h2 class="sidebar-title">Verify a Plot</h2>
+        <p class="sidebar-sub">Drop a pin on the map or enter the location below.</p>
+      </div>
+ 
+      <!-- Search input -->
+      <div class="input-group">
+        <label class="input-label">Search by Address</label>
+        <div class="input-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="address-input" placeholder="e.g. Whitefield, Bengaluru…" />
+        </div>
+      </div>
+ 
+      <div class="or-divider">or paste Google Maps link</div>
+ 
+      <div class="input-group">
+        <label class="input-label">Google Maps URL</label>
+        <div class="input-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <input type="text" id="gmaps-input" placeholder="https://maps.google.com/…" />
+        </div>
+      </div>
+ 
+      <!-- Detected location info -->
+      <div id="location-detected" style="display:none">
+        <div style="background:var(--green-light);border-radius:var(--radius);padding:16px;border:1px solid #bbf7d0">
+          <p style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">📍 Location Detected</p>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;justify-content:space-between;font-size:13px">
+              <span style="color:var(--ink-60)">Village</span><strong>Kadubeesanahalli</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px">
+              <span style="color:var(--ink-60)">Hobli</span><strong>Varthur</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px">
+              <span style="color:var(--ink-60)">Taluk</span><strong>Bengaluru East</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px">
+              <span style="color:var(--ink-60)">District</span><strong>Bengaluru Urban</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Survey number confirmation -->
+      <div id="survey-detected" style="display:none">
+        <div style="background:#eff6ff;border-radius:var(--radius);padding:16px;border:1px solid #bfdbfe">
+          <p style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">🗺 Survey Number Detected</p>
+          <p style="font-size:24px;font-weight:700;color:var(--ink);font-family:var(--font-serif)">Sy No. 47/3</p>
+          <p style="font-size:12px;color:var(--ink-60);margin-top:4px">Confidence: 94% (auto-detected)</p>
+          <p style="font-size:12px;color:var(--ink-60);margin-top:2px">Area: ~0.48 acres · CDP Zone: Residential</p>
+        </div>
+      </div>
+ 
+      <!-- CTA -->
+      <button class="btn btn-primary btn-lg" id="verify-btn" onclick="startVerification()" style="display:none">
+        🔍 Start Full Verification
+      </button>
+ 
+      <div id="drop-prompt" style="text-align:center;padding:24px 0;color:var(--ink-30)">
+        <div style="font-size:40px;margin-bottom:8px">📍</div>
+        <p style="font-size:13px">Click anywhere on the map to<br>drop a verification pin</p>
+      </div>
+    </aside>
+ 
+    <!-- Map area -->
+    <div class="map-area" id="map-area" onclick="handleMapClick(event)">
+      <div class="map-grid"></div>
+      <div class="map-roads"></div>
+ 
+      <!-- Decorative map elements -->
+      <div style="position:absolute;top:30%;left:20%;width:120px;height:80px;background:rgba(34,197,94,0.15);border-radius:8px;border:1.5px solid rgba(34,197,94,0.3)"></div>
+      <div style="position:absolute;top:55%;left:60%;width:80px;height:60px;background:rgba(34,197,94,0.1);border-radius:6px;border:1px solid rgba(34,197,94,0.2)"></div>
+      <div style="position:absolute;top:20%;left:65%;width:60px;height:100px;background:rgba(59,130,246,0.1);border-radius:6px"></div>
+ 
+      <!-- Pin (shown after click) -->
+      <div class="map-pin" id="map-pin" style="display:none;position:absolute;left:50%;top:45%;transform:translate(-50%,-100%)">
+        <div style="position:relative">
+          <div class="map-tooltip">
+            <p class="map-tooltip-title">Kadubeesanahalli, Varthur Hobli</p>
+            <p class="map-tooltip-sub">12.9352° N, 77.6809° E · Survey No. 47/3</p>
+          </div>
+        </div>
+        <div class="map-pin-body">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <div class="map-pin-shadow"></div>
+      </div>
+ 
+      <!-- Instruction text -->
+      <div id="map-instruction" style="position:absolute;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(15,26,20,0.75);color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;backdrop-filter:blur(8px);pointer-events:none">
+        👆 Click anywhere to drop a verification pin
+      </div>
+ 
+      <!-- Map controls -->
+      <div class="map-controls">
+        <button class="map-ctrl-btn" title="Zoom in">+</button>
+        <button class="map-ctrl-btn" title="Zoom out">−</button>
+        <button class="map-ctrl-btn" title="My location">◎</button>
+        <button class="map-ctrl-btn" title="Satellite view">🛰</button>
+      </div>
+ 
+      <!-- Coord display -->
+      <div class="coord-display" id="coord-display" style="display:none">
+        📍 12.9352° N, 77.6809° E
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════ SCREEN 3: VERIFICATION PIPELINE -->
+<div class="page screen" id="screen-verify">
+  <div class="verify-layout">
+    <div class="verify-main">
+      <div class="verify-header">
+        <h2>Verifying Sy No. 47/3, Kadubeesanahalli</h2>
+        <div class="verify-meta">
+          <span class="verify-meta-item">📍 Bengaluru Urban · Varthur Hobli</span>
+          <span class="verify-meta-item">📐 0.48 acres</span>
+          <span class="verify-meta-item">🏘 Residential Zone</span>
+          <span class="badge badge-neutral" style="margin-left:auto">Job ID: j_28f4a1</span>
+        </div>
+      </div>
+ 
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-header">
+          <span class="progress-label">Overall Progress</span>
+          <span class="progress-pct" id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+ 
+      <div class="checks-list" id="checks-list">
+        <!-- Rendered by JS -->
+      </div>
+    </div>
+ 
+    <!-- Sidebar -->
+    <aside class="verify-side">
+      <h3 style="font-size:16px;font-weight:600">Property Summary</h3>
+      <div class="prop-summary">
+        <p class="prop-summary-title">Location Details</p>
+        <div class="prop-row"><span class="prop-row-k">Survey No.</span><span class="prop-row-v">47/3</span></div>
+        <div class="prop-row"><span class="prop-row-k">Village</span><span class="prop-row-v">Kadubeesanahalli</span></div>
+        <div class="prop-row"><span class="prop-row-k">Hobli</span><span class="prop-row-v">Varthur</span></div>
+        <div class="prop-row"><span class="prop-row-k">Taluk</span><span class="prop-row-v">Bengaluru East</span></div>
+        <div class="prop-row"><span class="prop-row-k">District</span><span class="prop-row-v">Bengaluru Urban</span></div>
+        <div class="prop-row"><span class="prop-row-k">GPS</span><span class="prop-row-v">12.9352° N, 77.6809° E</span></div>
+        <div class="prop-row"><span class="prop-row-k">Area</span><span class="prop-row-v">0.48 acres (20,908 sq ft)</span></div>
+        <div class="prop-row"><span class="prop-row-k">CDP Zone</span><span class="prop-row-v">Residential (R1)</span></div>
+      </div>
+ 
+      <div class="prop-summary">
+        <p class="prop-summary-title">Live Status</p>
+        <div style="display:flex;flex-direction:column;gap:8px" id="live-status">
+          <div style="font-size:13px;color:var(--ink-60)">Starting verification pipeline…</div>
+        </div>
+      </div>
+ 
+      <button class="btn btn-primary" id="view-report-btn" style="display:none;width:100%" onclick="showScreen('report')">
+        📄 View Full Report
+      </button>
+    </aside>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════ SCREEN 4: REPORT VIEW -->
+<div class="page screen" id="screen-report">
+  <div class="report-layout">
+    <div class="report-topbar">
+      <div>
+        <h2>Verification Report</h2>
+        <p style="font-size:13px;color:var(--ink-60)">Sy No. 47/3 · Kadubeesanahalli · Generated 3 Jun 2025</p>
+      </div>
+      <div class="report-actions">
+        <button class="btn btn-ghost" onclick="showToast('PDF download started ✓')">⬇ Download PDF</button>
+        <button class="btn btn-ghost" onclick="showToast('Report link copied ✓')">🔗 Share</button>
+        <button class="btn btn-primary" onclick="showScreen('search')">+ New Verification</button>
+      </div>
+    </div>
+ 
+    <!-- Cover -->
+    <div class="report-cover">
+      <div class="report-cover-left">
+        <h3>Sy No. 47/3, Kadubeesanahalli</h3>
+        <p>Varthur Hobli · Bengaluru East Taluk · Bengaluru Urban District</p>
+        <div class="report-cover-meta">
+          <div class="report-cover-meta-item"><strong>Area:</strong> 0.48 acres (20,908 sq ft)</div>
+          <div class="report-cover-meta-item"><strong>CDP Zone:</strong> Residential (R1)</div>
+          <div class="report-cover-meta-item"><strong>Owner:</strong> Ramesh Narayanappa</div>
+          <div class="report-cover-meta-item"><strong>Generated:</strong> 3 Jun 2025, 14:32 IST</div>
+          <div class="report-cover-meta-item" style="margin-top:12px">
+            <span style="background:rgba(255,255,255,0.1);padding:4px 12px;border-radius:6px;font-size:12px;color:rgba(255,255,255,0.6)">
+              ⚠ Due diligence aid only. Not legal advice. Engage a registered advocate for final title verification.
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="risk-score-circle amber">
+        <span class="risk-score-num">61</span>
+        <span class="risk-score-lbl">Amber</span>
+      </div>
+    </div>
+ 
+    <!-- Sections -->
+    <!-- Section 1: Location -->
+    <div class="report-section">
+      <div class="report-section-header" onclick="toggleSection(this)">
+        <div class="report-section-left">
+          <div class="report-section-icon" style="background:#dbeafe">📍</div>
+          <span class="report-section-title">1. Location &amp; Zone Classification</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge badge-green">✓ Residential Zone</span>
+          <span style="color:var(--ink-30)">▼</span>
+        </div>
+      </div>
+      <div class="report-section-body">
+        <table class="rtable">
+          <tr><th>Check</th><th>Result</th><th>Status</th></tr>
+          <tr><td>CDP Zone (BDA Master Plan 2031)</td><td>Residential (R1)</td><td><span class="flag-pill green">✓ Clear</span></td></tr>
+          <tr><td>Lake Buffer Distance</td><td>Nearest water body: 130m (Varthur Kere)</td><td><span class="flag-pill amber">⚠ Warning</span></td></tr>
+          <tr><td>NGT Tribunal Orders</td><td>No active orders for this village</td><td><span class="flag-pill green">✓ Clear</span></td></tr>
+          <tr><td>AAI Airport Buffer</td><td>14.2 km from BIAL — outside restricted zone</td><td><span class="flag-pill green">✓ Clear</span></td></tr>
+          <tr><td>GPS Coordinates</td><td>12.9352° N, 77.6809° E</td><td><span class="flag-pill green">✓ Confirmed</span></td></tr>
+        </table>
+        <p style="font-size:12px;color:var(--ink-60);margin-top:12px">⚠ Plot is 130m from Varthur Kere. Within 75–150m buffer zone — NOC from Karnataka Lake Authority required before construction. Confirm with BDA before purchase.</p>
+      </div>
+    </div>
+ 
+    <!-- Section 2: Ownership -->
+    <div class="report-section">
+      <div class="report-section-header" onclick="toggleSection(this)">
+        <div class="report-section-left">
+          <div class="report-section-icon" style="background:#dcfce7">📋</div>
+          <span class="report-section-title">2. Ownership &amp; Revenue Records (Bhoomi RTC)</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge badge-green">✓ Verified</span>
+          <span style="color:var(--ink-30)">▼</span>
+        </div>
+      </div>
+      <div class="report-section-body">
+        <table class="rtable">
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owner Name</td><td><strong>Ramesh Narayanappa</strong></td></tr>
+          <tr><td>Khata No.</td><td>KT/47/3/2019</td></tr>
+          <tr><td>Land Use</td><td>Non-Agricultural (Converted)</td></tr>
+          <tr><td>Total Area</td><td>0.48 Acres (20,908 sq ft)</td></tr>
+          <tr><td>Dryland / Wetland</td><td>Dryland: 0.48A · Wetland: 0A</td></tr>
+          <tr><td>Encumbrances in RTC</td><td>None</td></tr>
+          <tr><td>Data Source</td><td>bhoomi.karnataka.gov.in · Fetched 3 Jun 2025</td></tr>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- Section 3: Mutation History -->
+    <div class="report-section">
+      <div class="report-section-header" onclick="toggleSection(this)">
+        <div class="report-section-left">
+          <div class="report-section-icon" style="background:#fef9c3">🔄</div>
+          <span class="report-section-title">3. Mutation History (Ownership Chain)</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge badge-green">✓ 3 Mutations</span>
+          <span style="color:var(--ink-30)">▼</span>
+        </div>
+      </div>
+      <div class="report-section-body">
+        <table class="rtable">
+          <tr><th>Mutation No.</th><th>Date</th><th>From</th><th>To</th><th>Type</th><th>Status</th></tr>
+          <tr><td>MR/47/2019</td><td>12 Mar 2019</td><td>Lakshmi Devaiah</td><td>Ramesh Narayanappa</td><td>Sale</td><td><span class="flag-pill green">Approved</span></td></tr>
+          <tr><td>MR/47/2008</td><td>05 Jan 2008</td><td>Devaiah K.</td><td>Lakshmi Devaiah</td><td>Inheritance</td><td><span class="flag-pill green">Approved</span></td></tr>
+          <tr><td>MR/47/1994</td><td>18 Sep 1994</td><td>Karnataka State (Grant)</td><td>Devaiah K.</td><td>Grant</td><td><span class="flag-pill green">Approved</span></td></tr>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- Section 4: Encumbrance -->
+    <div class="report-section">
+      <div class="report-section-header" onclick="toggleSection(this)">
+        <div class="report-section-left">
+          <div class="report-section-icon" style="background:#fce7f3">🔒</div>
+          <span class="report-section-title">4. Encumbrance Certificate (30-Year)</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge badge-amber">⚠ 1 Flag</span>
+          <span style="color:var(--ink-30)">▼</span>
+        </div>
+      </div>
+      <div class="report-section-body">
+        <table class="rtable">
+          <tr><th>Doc No.</th><th>Date</th><th>Type</th><th>Executant</th><th>Claimant</th><th>Amount</th><th>Status</th></tr>
+          <tr><td>KVR/BU/2019/4471</td><td>12 Mar 2019</td><td>Sale Deed</td><td>Lakshmi Devaiah</td><td>Ramesh Narayanappa</td><td>₹68,00,000</td><td><span class="flag-pill green">Closed</span></td></tr>
+          <tr class="flagged-row"><td>KVR/BU/2021/8823</td><td>22 Jul 2021</td><td><strong>Mortgage</strong></td><td>Ramesh Narayanappa</td><td>SBI Home Loans</td><td>₹45,00,000</td><td><span class="flag-pill amber">⚠ Active</span></td></tr>
+          <tr><td>KVR/BU/2008/2211</td><td>05 Jan 2008</td><td>Inheritance</td><td>Devaiah K.</td><td>Lakshmi Devaiah</td><td>—</td><td><span class="flag-pill green">Closed</span></td></tr>
+        </table>
+        <div style="background:var(--amber-light);border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-top:14px">
+          <p style="font-size:13px;font-weight:600;color:var(--amber);margin-bottom:4px">⚠ Active Mortgage Detected</p>
+          <p style="font-size:12px;color:var(--ink-60)">Document KVR/BU/2021/8823 shows an active mortgage of ₹45,00,000 with SBI Home Loans (Jul 2021). The seller must discharge this loan before or at registration. Verify NOC from bank before proceeding.</p>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Section 5: Legal -->
+    <div class="report-section">
+      <div class="report-section-header" onclick="toggleSection(this)">
+        <div class="report-section-left">
+          <div class="report-section-icon" style="background:#ede9fe">⚖️</div>
+          <span class="report-section-title">5. Legal &amp; Court Cases</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge badge-green">✓ No Litigation</span>
+          <span style="color:var(--ink-30)">▼</span>
+        </div>
+      </div>
+      <div class="report-section-body">
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin-top:16px;text-align:center">
+          <p style="font-size:20px;margin-bottom:6px">✅</p>
+          <p style="font-size:14px;font-weight:600;color:var(--green)">No active litigation found</p>
+          <p style="font-size:12px;color:var(--ink-60)">Checked: District Courts · Karnataka High Court · Supreme Court · BDA Acquisition Notices · RERA</p>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Section 6: Utilities -->
+    <div class="report-section">
+      <div class="report-section-header" onclick="toggleSection(this)">
+        <div class="report-section-left">
+          <div class="report-section-icon" style="background:#fff7ed">💡</div>
+          <span class="report-section-title">6. Utility Status</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge badge-green">✓ All Active</span>
+          <span style="color:var(--ink-30)">▼</span>
+        </div>
+      </div>
+      <div class="report-section-body">
+        <table class="rtable">
+          <tr><th>Utility</th><th>Status</th><th>Consumer/PID</th><th>Outstanding Dues</th></tr>
+          <tr><td>⚡ BESCOM (Electricity)</td><td><span class="flag-pill green">Active</span></td><td>BES/WF/22847</td><td>₹0</td></tr>
+          <tr><td>💧 BWSSB (Water &amp; Sewage)</td><td><span class="flag-pill green">Active</span></td><td>BWS/44112</td><td>₹0</td></tr>
+          <tr><td>🏛 BBMP (Property Tax / Khata)</td><td><span class="flag-pill green">Registered</span></td><td>PID: 47-3-22</td><td>₹0</td></tr>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- Section 7: Owner Background -->
+    <div class="report-section">
+      <div class="report-section-header" onclick="toggleSection(this)">
+        <div class="report-section-left">
+          <div class="report-section-icon" style="background:#dcfce7">👤</div>
+          <span class="report-section-title">7. Owner Background</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge badge-green">✓ Verified</span>
+          <span style="color:var(--ink-30)">▼</span>
+        </div>
+      </div>
+      <div class="report-section-body">
+        <table class="rtable">
+          <tr><th>Check</th><th>Result</th><th>Status</th></tr>
+          <tr><td>Aadhaar Linkage</td><td>Aadhaar linked (Last 4: ****7832)</td><td><span class="flag-pill green">✓ Verified</span></td></tr>
+          <tr><td>Aadhaar–PAN Linkage</td><td>PAN linked (Income Tax confirmed)</td><td><span class="flag-pill green">✓ Linked</span></td></tr>
+          <tr><td>CCTNS Criminal Records</td><td>No records found for Ramesh Narayanappa</td><td><span class="flag-pill green">✓ Clean</span></td></tr>
+          <tr><td>Joint Ownership</td><td>Single owner (no joint holders in Bhoomi)</td><td><span class="flag-pill green">✓ Clear</span></td></tr>
+        </table>
+      </div>
+    </div>
+ 
+    <!-- Section 8: Price Intelligence -->
+    <div class="report-section">
+      <div class="report-section-header" onclick="toggleSection(this)">
+        <div class="report-section-left">
+          <div class="report-section-icon" style="background:#fef9c3">📈</div>
+          <span class="report-section-title">8. AI Price Intelligence</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="badge badge-neutral">Est. ₹7,200/sqft</span>
+          <span style="color:var(--ink-30)">▼</span>
+        </div>
+      </div>
+      <div class="report-section-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px">
+          <div>
+            <p style="font-size:12px;color:var(--ink-60);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Estimated Market Value</p>
+            <p style="font-family:var(--font-serif);font-size:36px;color:var(--ink)">₹1.51 Cr</p>
+            <p style="font-size:13px;color:var(--ink-60)">₹7,200/sqft · 20,908 sqft</p>
+            <p style="font-size:12px;color:var(--ink-30);margin-top:4px">Confidence range: ₹6,800–₹7,600/sqft</p>
+          </div>
+          <div>
+            <p style="font-size:12px;color:var(--ink-60);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700">Top SHAP Factors</p>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>Location (Whitefield proximity)</span><span style="color:var(--green);font-weight:600">+₹1,200</span></div>
+                <div style="height:6px;background:var(--paper-2);border-radius:3px"><div style="height:100%;width:70%;background:var(--green);border-radius:3px"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>Residential Zone (R1)</span><span style="color:var(--green);font-weight:600">+₹800</span></div>
+                <div style="height:6px;background:var(--paper-2);border-radius:3px"><div style="height:100%;width:50%;background:var(--green);border-radius:3px"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>Lake buffer proximity</span><span style="color:var(--amber);font-weight:600">−₹300</span></div>
+                <div style="height:6px;background:var(--paper-2);border-radius:3px"><div style="height:100%;width:25%;background:#f59e0b;border-radius:3px"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>BESCOM active connection</span><span style="color:var(--green);font-weight:600">+₹200</span></div>
+                <div style="height:6px;background:var(--paper-2);border-radius:3px"><div style="height:100%;width:15%;background:var(--green);border-radius:3px"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════ SCREEN 5: AUTH -->
+<div class="page screen" id="screen-auth">
+  <div class="auth-layout">
+    <div class="auth-panel">
+      <div class="auth-form-wrap">
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-sub">Start verifying Karnataka land in minutes.</p>
+ 
+        <p style="font-size:12px;font-weight:700;color:var(--ink-60);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:10px">I am a</p>
+        <div class="role-selector">
+          <div class="role-option selected" onclick="selectRole(this)">
+            <div class="role-option-icon">🏠</div>
+            <div class="role-option-label">Buyer</div>
+            <div class="role-option-sub">Verifying land for purchase</div>
+          </div>
+          <div class="role-option" onclick="selectRole(this)">
+            <div class="role-option-icon">🏢</div>
+            <div class="role-option-label">Agent</div>
+            <div class="role-option-sub">Managing client properties</div>
+          </div>
+        </div>
+ 
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <div class="input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <input type="text" placeholder="e.g. Ramesh Kumar" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <div class="input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <input type="email" placeholder="you@example.com" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone (for OTP)</label>
+          <div class="input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 0h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9a16 16 0 0 0 6.91 6.91l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 24 16.92z"/></svg>
+            <input type="text" placeholder="+91 98765 43210" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" placeholder="Min. 8 chars · 1 uppercase · 1 digit" />
+          </div>
+        </div>
+ 
+        <button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px" onclick="handleAuth()">
+          Create Account &amp; Send OTP
+        </button>
+ 
+        <div class="auth-switch">
+          Already have an account? <a onclick="showToast('Logged in as Tejovanth ✓');showScreen('dashboard')">Log in</a>
+        </div>
+      </div>
+    </div>
+ 
+    <div class="auth-visual">
+      <div class="auth-visual-inner">
+        <h2>Land due diligence that actually works.</h2>
+        <p>Stop navigating 9 government portals with CAPTCHA walls. One pin. One report. Every check automated.</p>
+        <div class="trust-items">
+          <div class="trust-item"><span class="ti">🛡️</span> RS256 JWT authentication — bank-grade security</div>
+          <div class="trust-item"><span class="ti">🔒</span> OTP-verified accounts — no fake registrations</div>
+          <div class="trust-item"><span class="ti">📋</span> Role-gated access — Buyer / Agent / Admin</div>
+          <div class="trust-item"><span class="ti">📄</span> DPDP Act 2023 compliant — your data, your control</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════ SCREEN 6: DASHBOARD -->
+<div class="page screen" id="screen-dashboard">
+  <div class="dash-layout">
+    <!-- Sidebar -->
+    <aside class="dash-sidebar">
+      <div class="dash-nav-item active">
+        <span class="icon">📊</span> Overview
+      </div>
+      <div class="dash-nav-item" onclick="showScreen('search')">
+        <span class="icon">🗺️</span> New Verification
+      </div>
+      <div class="dash-nav-item">
+        <span class="icon">📋</span> My Verifications
+      </div>
+      <div class="dash-nav-item">
+        <span class="icon">📄</span> Reports
+      </div>
+      <div class="dash-nav-item">
+        <span class="icon">🔖</span> Saved Searches
+      </div>
+      <div class="dash-nav-item" style="margin-top:auto">
+        <span class="icon">⚙️</span> Settings
+      </div>
+      <div class="dash-nav-item" onclick="showScreen('landing')">
+        <span class="icon">↩</span> Logout
+      </div>
+    </aside>
+ 
+    <!-- Content -->
+    <main class="dash-content">
+      <h1 class="dash-title">Welcome back 👋</h1>
+ 
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <p class="kpi-label">Verifications</p>
+          <p class="kpi-value">7</p>
+          <p class="kpi-delta">+2 this month</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Reports Ready</p>
+          <p class="kpi-value">5</p>
+          <p class="kpi-delta">+1 today</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Flags Found</p>
+          <p class="kpi-value">3</p>
+          <p class="kpi-delta" style="color:var(--amber)">Requires review</p>
+        </div>
+        <div class="kpi-card">
+          <p class="kpi-label">Saved</p>
+          <p class="kpi-value">₹2.4L</p>
+          <p class="kpi-delta">vs agent fees</p>
+        </div>
+      </div>
+ 
+      <div class="recent-table-wrap">
+        <div class="recent-table-header">Recent Verifications</div>
+        <table class="recent-table">
+          <thead>
+            <tr>
+              <th>Plot</th>
+              <th>Location</th>
+              <th>Initiated</th>
+              <th>Status</th>
+              <th>Risk</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Sy No. 47/3</strong></td>
+              <td>Kadubeesanahalli, Bengaluru</td>
+              <td>3 Jun 2025</td>
+              <td><span class="status-pill verified">Verified</span></td>
+              <td><span class="badge badge-amber">Amber · 61</span></td>
+              <td><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="showScreen('report')">View Report</button></td>
+            </tr>
+            <tr>
+              <td><strong>Sy No. 12/1</strong></td>
+              <td>Yelahanka, Bengaluru</td>
+              <td>29 May 2025</td>
+              <td><span class="status-pill verified">Verified</span></td>
+              <td><span class="badge badge-green">Green · 82</span></td>
+              <td><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="showToast('Report opened ✓')">View Report</button></td>
+            </tr>
+            <tr>
+              <td><strong>Sy No. 88/2A</strong></td>
+              <td>Sarjapur, Bengaluru</td>
+              <td>27 May 2025</td>
+              <td><span class="status-pill verifying">Verifying</span></td>
+              <td>—</td>
+              <td><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="showScreen('verify')">Check Progress</button></td>
+            </tr>
+            <tr>
+              <td><strong>Sy No. 22/4</strong></td>
+              <td>Devanahalli, Bengaluru Rural</td>
+              <td>20 May 2025</td>
+              <td><span class="status-pill verified">Verified</span></td>
+              <td><span class="badge badge-red">Red · 34</span></td>
+              <td><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="showToast('Report opened ✓')">View Report</button></td>
+            </tr>
+            <tr>
+              <td><strong>Sy No. 5/6B</strong></td>
+              <td>Kengeri, Bengaluru</td>
+              <td>14 May 2025</td>
+              <td><span class="status-pill pending">Pending</span></td>
+              <td>—</td>
+              <td><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px" onclick="showScreen('verify')">Resume</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+ 
+<script>
+/* ─────────────────────────────────────────────
+   SCREEN ROUTING
+───────────────────────────────────────────── */
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+ 
+  // Nav active state
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  const map = { landing: 'nav-home', search: 'nav-search', dashboard: 'nav-dash' };
+  if (map[name]) document.getElementById(map[name])?.classList.add('active');
+ 
+  window.scrollTo(0, 0);
+}
+ 
+/* ─────────────────────────────────────────────
+   TOAST
+───────────────────────────────────────────── */
+let toastTimer;
+function showToast(msg, icon='✓') {
+  const el = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = icon;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+ 
+/* ─────────────────────────────────────────────
+   SEARCH / MAP INTERACTION
+───────────────────────────────────────────── */
+let pinDropped = false;
+function handleMapClick(e) {
+  if (pinDropped) return;
+  pinDropped = true;
+ 
+  const pin = document.getElementById('map-pin');
+  const instruction = document.getElementById('map-instruction');
+  const coord = document.getElementById('coord-display');
+ 
+  pin.style.display = 'block';
+  instruction.style.display = 'none';
+  coord.style.display = 'block';
+ 
+  showToast('📍 Pin dropped — detecting survey number…', '📍');
+ 
+  setTimeout(() => {
+    document.getElementById('location-detected').style.display = 'block';
+    showToast('📋 Location resolved: Kadubeesanahalli, Varthur Hobli', '📋');
+  }, 800);
+ 
+  setTimeout(() => {
+    document.getElementById('survey-detected').style.display = 'block';
+    document.getElementById('drop-prompt').style.display = 'none';
+    document.getElementById('verify-btn').style.display = 'flex';
+    showToast('🗺️ Survey No. 47/3 detected with 94% confidence', '🗺️');
+  }, 1800);
+}
+ 
+/* ─────────────────────────────────────────────
+   VERIFICATION PIPELINE ANIMATION
+───────────────────────────────────────────── */
+const CHECKS = [
+  { id: 'rtc',          name: 'Bhoomi — RTC / Pahani',              icon: '📋', detail: 'Fetching Record of Rights & Pahani from bhoomi.karnataka.gov.in' },
+  { id: 'mutation',     name: 'Bhoomi — Mutation Register',          icon: '🔄', detail: 'Retrieving full ownership change history' },
+  { id: 'ec',           name: 'Kaveri — Encumbrance Certificate',    icon: '🔒', detail: 'Pulling 30-year EC from kaverionline.karnataka.gov.in' },
+  { id: 'ecourts_dist', name: 'eCourts — District Courts',           icon: '⚖️', detail: 'Searching Karnataka district courts by owner name' },
+  { id: 'ecourts_hc',   name: 'eCourts — High Court Karnataka',      icon: '⚖️', detail: 'Checking Karnataka HC case status' },
+  { id: 'bda_acq',      name: 'BDA — Acquisition Notice Check',      icon: '🏛', detail: 'Scanning BDA notifications for this survey number' },
+  { id: 'bda_layout',   name: 'BDA — Layout Approval Status',        icon: '📐', detail: 'Verifying layout sanction from BDA portal' },
+  { id: 'rera',         name: 'RERA Karnataka',                      icon: '🏠', detail: 'Checking RERA registration status' },
+  { id: 'zone',         name: 'GIS — CDP Zone & Lake Buffer',         icon: '🗺️', detail: 'Running PostGIS spatial queries on BDA Master Plan 2031' },
+  { id: 'ngt',          name: 'GIS — NGT Tribunal Orders',            icon: '🌿', detail: 'Scraping greentribunal.gov.in for Karnataka orders' },
+  { id: 'bescom',       name: 'BESCOM — Electricity Connection',      icon: '⚡', detail: 'Checking consumer status at bescom.org' },
+  { id: 'bwssb',        name: 'BWSSB — Water & Sewage',              icon: '💧', detail: 'Verifying connection status at BWSSB portal' },
+  { id: 'bbmp',         name: 'BBMP — Khata & Property Tax',          icon: '🏘', detail: 'Fetching Khata & tax dues from bbmptax.karnataka.gov.in' },
+  { id: 'cctns',        name: 'CCTNS — Criminal Records',             icon: '🔍', detail: 'Checking Karnataka Police records via AuthBridge API' },
+];
+ 
+const RESULTS = {
+  rtc: { status:'passed', detail: 'Owner: Ramesh Narayanappa · 0.48 acres · Non-Agricultural' },
+  mutation: { status:'passed', detail: '3 mutations found — chain intact since 1994' },
+  ec: { status:'flagged', detail: '⚠ Active mortgage: SBI ₹45L (Jul 2021) · 2 other closed transactions' },
+  ecourts_dist: { status:'passed', detail: 'No active cases in district courts' },
+  ecourts_hc: { status:'passed', detail: 'No cases found in Karnataka HC' },
+  bda_acq: { status:'passed', detail: 'No acquisition notice for this survey number' },
+  bda_layout: { status:'passed', detail: 'Layout approved — Ref: BDA/L/2018/447' },
+  rera: { status:'passed', detail: 'No active RERA project on this plot' },
+  zone: { status:'flagged', detail: '⚠ Within 130m of Varthur Kere — NOC required (75–150m zone)' },
+  ngt: { status:'passed', detail: 'No NGT orders affecting this village' },
+  bescom: { status:'passed', detail: 'Connection active · Consumer BES/WF/22847 · No dues' },
+  bwssb: { status:'passed', detail: 'Water + sewage active · No outstanding dues' },
+  bbmp: { status:'passed', detail: 'Khata registered · PID 47-3-22 · Tax paid up to 2024' },
+  cctns: { status:'passed', detail: 'No criminal records found for owner or previous owners' },
+};
+ 
+const STATUS_ICONS = { passed: '✅', flagged: '⚠️', failed: '❌', running: null, pending: '⬜' };
+ 
+function renderChecks(states) {
+  const container = document.getElementById('checks-list');
+  container.innerHTML = '';
+  states.forEach((s, i) => {
+    const check = CHECKS[i];
+    const div = document.createElement('div');
+    div.className = 'check-item ' + s.status;
+    div.innerHTML = `
+      <div class="check-icon">${s.status === 'running' ? '' : STATUS_ICONS[s.status] || '⬜'}</div>
+      <div class="check-info">
+        <p class="check-name">${check.icon} ${check.name}</p>
+        <p class="check-detail">${s.detail || check.detail}</p>
+      </div>
+      <span class="check-status">${s.status === 'running' ? 'Running…' : s.status}</span>
+    `;
+    if (s.status === 'running') {
+      div.querySelector('.check-icon').innerHTML = '<div class="spinner"></div>';
+    }
+    container.appendChild(div);
+  });
+}
+ 
+function updateProgress(done, total) {
+  const pct = Math.round((done / total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+}
+ 
+function runVerificationAnimation() {
+  const total = CHECKS.length;
+  let states = CHECKS.map(() => ({ status: 'pending', detail: '' }));
+  renderChecks(states);
+ 
+  const liveStatus = document.getElementById('live-status');
+ 
+  let idx = 0;
+  function nextCheck() {
+    if (idx >= total) {
+      // All done
+      const passed = states.filter(s => s.status === 'passed').length;
+      const flagged = states.filter(s => s.status === 'flagged').length;
+      liveStatus.innerHTML = `
+        <div style="font-size:13px;color:var(--green);font-weight:600">✅ Verification complete</div>
+        <div style="font-size:12px;color:var(--ink-60)">${passed} passed · ${flagged} flagged · 0 failed</div>
+        <div style="font-size:12px;color:var(--ink-60);margin-top:4px">Generating PDF report…</div>
+      `;
+      setTimeout(() => {
+        document.getElementById('view-report-btn').style.display = 'flex';
+        showToast('Report ready! View your verification report 📄', '📄');
+      }, 1400);
+      return;
+    }
+ 
+    // Start current check
+    states[idx].status = 'running';
+    renderChecks(states);
+    liveStatus.innerHTML = `<div style="font-size:13px;color:#2563eb">${CHECKS[idx].icon} Checking: ${CHECKS[idx].name}…</div>`;
+ 
+    const delay = 400 + Math.random() * 600;
+    setTimeout(() => {
+      const res = RESULTS[CHECKS[idx].id];
+      states[idx].status = res.status;
+      states[idx].detail = res.detail;
+      updateProgress(idx + 1, total);
+      renderChecks(states);
+      idx++;
+      nextCheck();
+    }, delay);
+  }
+ 
+  nextCheck();
+}
+ 
+/* ─────────────────────────────────────────────
+   REPORT SECTION TOGGLE
+───────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.report-section-body').forEach(body => {
+    body.hidden = false; // start open
+  });
+});
+ 
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const arrow = header.querySelector('span:last-child');
+  body.hidden = !body.hidden;
+  if (arrow) arrow.textContent = body.hidden ? '▶' : '▼';
+}
+ 
+/* ─────────────────────────────────────────────
+   VERIFY START
+───────────────────────────────────────────── */
+function startVerification() {
+  showScreen('verify');
+  setTimeout(runVerificationAnimation, 400);
+}
+ 
+/* ─────────────────────────────────────────────
+   AUTH HELPERS
+───────────────────────────────────────────── */
+function selectRole(el) {
+  document.querySelectorAll('.role-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+ 
+function handleAuth() {
+  showToast('OTP sent to your phone ✓', '📱');
+  setTimeout(() => {
+    showScreen('dashboard');
+    showToast('Welcome to Alstonaire! Account verified ✓', '🎉');
+  }, 1600);
+}
+ 
+/* ─────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────── */
+showScreen('landing');
+</script>
+</body>
+</html>
