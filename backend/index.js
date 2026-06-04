@@ -1,12 +1,14 @@
-console.log("NEW LOGIN VERSION LOADED");
-
 const express = require("express");
 const pool = require("./db");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const auth = require("./middleware/auth");
 
 const app = express();
 
 app.use(express.json());
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 app.get("/", (req, res) => {
   res.send("Sprint 1 Ready");
@@ -82,14 +84,22 @@ app.post("/login", async (req, res) => {
       });
     }
 
-    res.json({
-      message: "Login successful",
-      user: {
+    const token = jwt.sign(
+      {
         id: user.id,
-        name: user.name,
         email: user.email,
       },
+      JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
     });
+
   } catch (error) {
     console.error(error);
 
@@ -97,6 +107,13 @@ app.post("/login", async (req, res) => {
       message: "Server error",
     });
   }
+});
+// PROFILE (Protected Route)
+app.get("/profile", auth, (req, res) => {
+  res.json({
+    message: "Profile accessed successfully",
+    user: req.user,
+  });
 });
 
 // USERS
