@@ -3,6 +3,7 @@ const pool = require("./db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const auth = require("./middleware/auth");
+const adminOnly = require("./middleware/admin");
 
 const app = express();
 
@@ -39,8 +40,8 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
-      [name, email, hashedPassword]
+      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4)",
+      [name, email, hashedPassword, "user"]
     );
 
     res.status(201).json({
@@ -88,6 +89,7 @@ app.post("/login", async (req, res) => {
       {
         id: user.id,
         email: user.email,
+        role: user.role,
       },
       JWT_SECRET,
       {
@@ -115,9 +117,22 @@ app.get("/profile", auth, (req, res) => {
     user: req.user,
   });
 });
+// ME (Current User)
+app.get("/me", auth, (req, res) => {
+  res.json({
+    id: req.user.id,
+    email: req.user.email,
+  });
+});
+// ADMIN ROUTE
+app.get("/admin", auth, adminOnly, (req, res) => {
+  res.json({
+    message: "Welcome Admin",
+  });
+});
 
 // USERS
-app.get("/users", async (req, res) => {
+app.get("/users", auth, async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT id, name, email, created_at FROM users ORDER BY id"
