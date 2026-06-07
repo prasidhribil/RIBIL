@@ -9,10 +9,7 @@ const getUsers = async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error(error);
-
-    res.status(500).json({
-      message: "Server error",
-    });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -20,7 +17,37 @@ const updateUser = async (req, res) => {
   const { id } = req.params;
   const { name, email } = req.body;
 
+  if (
+    req.user.id !== Number(id) &&
+    req.user.role !== "admin"
+  ) {
+    return res.status(403).json({
+      message: "Access denied",
+    });
+  }
+
+  if (!name || !email) {
+    return res.status(400).json({
+      message: "Name and email are required",
+    });
+  }
+
   try {
+    const emailCheck = await pool.query(
+      `
+      SELECT * FROM users
+      WHERE email = $1
+      AND id != $2
+      `,
+      [email, id]
+    );
+
+    if (emailCheck.rows.length > 0) {
+      return res.status(409).json({
+        message: "Email already exists",
+      });
+    }
+
     const result = await pool.query(
       `
       UPDATE users
@@ -43,7 +70,6 @@ const updateUser = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
     res.status(500).json({
       message: "Server error",
     });
@@ -52,6 +78,15 @@ const updateUser = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   const { id } = req.params;
+
+  if (
+    req.user.id !== Number(id) &&
+    req.user.role !== "admin"
+  ) {
+    return res.status(403).json({
+      message: "Access denied",
+    });
+  }
 
   try {
     const result = await pool.query(
@@ -70,7 +105,6 @@ const deleteUser = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
     res.status(500).json({
       message: "Server error",
     });
