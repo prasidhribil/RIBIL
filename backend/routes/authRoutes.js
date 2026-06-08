@@ -11,13 +11,23 @@ const {
   validate,
 } = require("../validators/authValidator");
 
+const {
+  loginLimiter,
+  registerLimiter,
+} = require("../middleware/rateLimiter");
+
 router.post(
   "/register",
+  registerLimiter,
   registerValidation,
   validate,
   register
 );
 
-router.post("/login", login);
+router.post(
+  "/login",
+  loginLimiter,
+  login
+);
 
 module.exports = router;
