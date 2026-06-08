@@ -1,125 +1,60 @@
 const express = require("express");
-const pool = require("./db");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const helmet = require("helmet");
+
 const auth = require("./middleware/auth");
+const adminOnly = require("./middleware/admin");
+
+const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
+// Hide Express fingerprint
+app.disable("x-powered-by");
+
+// Security Headers
+app.use(helmet());
+
+// Parse JSON
 app.use(express.json());
 
-const JWT_SECRET = process.env.JWT_SECRET;
+// Debug middleware (temporary)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
 
+  // Temporary header to verify middleware execution
+  res.setHeader("X-JO-TEST", "WORKING");
+
+  next();
+});
+
+// Route Files
+app.use("/", authRoutes);
+app.use("/", userRoutes);
+
+// Home Route
 app.get("/", (req, res) => {
   res.send("Sprint 1 Ready");
 });
 
-// REGISTER
-app.post("/register", async (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({
-      message: "All fields are required",
-    });
-  }
-
-  try {
-    const existingUser = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
-
-    if (existingUser.rows.length > 0) {
-      return res.status(409).json({
-        message: "Email already exists",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await pool.query(
-      "INSERT INTO users (name, email, password) VALUES ($1, $2, $3)",
-      [name, email, hashedPassword]
-    );
-
-    res.status(201).json({
-      message: "Registration successful",
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      message: "Server error",
-    });
-  }
-});
-
-// LOGIN
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const result = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({
-        message: "Invalid email or password",
-      });
-    }
-
-    const user = result.rows[0];
-
-    const isMatch = await bcrypt.compare(
-      password,
-      user.password
-    );
-
-    if (!isMatch) {
-      return res.status(401).json({
-        message: "Invalid email or password",
-      });
-    }
-
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-      },
-      JWT_SECRET,
-      {
-        expiresIn: "1h",
-      }
-    );
-
-    res.json({
-      message: "Login successful",
-      token,
-    });
-
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      message: "Server error",
-    });
-  }
-});
-// PROFILE (Protected Route)
+// Profile Route
 app.get("/profile", auth, (req, res) => {
   res.json({
     message: "Profile accessed successfully",
     user: req.user,
   });
 });
+<<<<<<< HEAD
 // ME (Protected Route)
+=======
+
+// Current User Route
+>>>>>>> 8faf37c90c243ee5906d0656d78f6df15183c885
 app.get("/me", auth, (req, res) => {
   res.json({
     id: req.user.id,
     email: req.user.email,
+<<<<<<< HEAD
   });
 });
 // USERS
@@ -128,15 +63,33 @@ app.get("/users", async (req, res) => {
     const result = await pool.query(
       "SELECT id, name, email, created_at FROM users ORDER BY id"
     );
+=======
+    role: req.user.role,
+  });
+});
+>>>>>>> 8faf37c90c243ee5906d0656d78f6df15183c885
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error(error);
+// Admin Route
+app.get("/admin", auth, adminOnly, (req, res) => {
+  res.json({
+    message: "Welcome Admin",
+  });
+});
 
-    res.status(500).json({
-      message: "Server error",
-    });
-  }
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({
+    message: "Route not found",
+  });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+
+  res.status(500).json({
+    message: "Internal Server Error",
+  });
 });
 
 const PORT = process.env.PORT || 3000;
