@@ -115,7 +115,13 @@ app.get("/profile", auth, (req, res) => {
     user: req.user,
   });
 });
-
+// ME (Protected Route)
+app.get("/me", auth, (req, res) => {
+  res.json({
+    id: req.user.id,
+    email: req.user.email,
+  });
+});
 // USERS
 app.get("/users", async (req, res) => {
   try {
