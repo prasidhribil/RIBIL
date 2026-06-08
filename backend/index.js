@@ -44,30 +44,15 @@ app.get("/profile", auth, (req, res) => {
     user: req.user,
   });
 });
-<<<<<<< HEAD
-// ME (Protected Route)
-=======
 
 // Current User Route
->>>>>>> 8faf37c90c243ee5906d0656d78f6df15183c885
 app.get("/me", auth, (req, res) => {
   res.json({
     id: req.user.id,
     email: req.user.email,
-<<<<<<< HEAD
-  });
-});
-// USERS
-app.get("/users", async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT id, name, email, created_at FROM users ORDER BY id"
-    );
-=======
     role: req.user.role,
   });
 });
->>>>>>> 8faf37c90c243ee5906d0656d78f6df15183c885
 
 // Admin Route
 app.get("/admin", auth, adminOnly, (req, res) => {
