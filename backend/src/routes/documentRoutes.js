@@ -18,7 +18,7 @@ router.get("/_local", serveLocalFile);
 router.post(
   "/upload",
   authenticateToken,
-  authorizeRole("buyer", "agent", "admin"),
+  authorizeRole("buyer", "seller", "admin"),
   uploadSingle("document"),
   uploadDocument
 );
@@ -26,14 +26,14 @@ router.post(
 router.get(
   "/:id/download",
   authenticateToken,
-  authorizeRole("buyer", "agent", "admin"),
+  authorizeRole("buyer", "seller", "admin"),
   downloadDocument
 );
 
 router.get(
   "/:property_id",
   authenticateToken,
-  authorizeRole("buyer", "agent", "admin"),
+  authorizeRole("buyer", "seller", "admin"),
   listDocuments
 );
 
