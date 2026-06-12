@@ -4,3 +4,8 @@ dist/
 coverage/
 .vscode/
 .DS_Store
+
+# local document storage driver (dev only)
+.local-storage/
+backend/.local-storage/
+uploads/

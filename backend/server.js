@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
+const documentRoutes = require('./src/routes/documentRoutes');
+
 const app = express();
 
 app.use(cors());
@@ -24,8 +26,14 @@ app.get('/api/verification/start', (req, res) => {
     });
 });
 
+app.use('/api/documents', documentRoutes);
+
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;
