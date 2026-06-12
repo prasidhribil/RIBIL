@@ -17,6 +17,11 @@ const {
 } = require("../controllers/sessionController");
 
 const {
+  forgotPassword,
+  resetPassword,
+} = require("../controllers/passwordController");
+
+const {
   validate,
   apiRegisterValidation,
   apiLoginValidation,
@@ -24,6 +29,8 @@ const {
   resendOtpValidation,
   refreshValidation,
   logoutValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
 } = require("../validators/apiAuthValidator");
 
 // Registration + OTP (A-02/03)
@@ -36,5 +43,19 @@ router.post("/login", apiLoginValidation, validate, login);
 router.post("/refresh", refreshValidation, validate, refresh);
 router.post("/logout", logoutValidation, validate, logout);
 router.post("/logout-all", auth, logoutAll);
+
+// Password reset (A-06)
+router.post(
+  "/forgot-password",
+  forgotPasswordValidation,
+  validate,
+  forgotPassword
+);
+router.post(
+  "/reset-password",
+  resetPasswordValidation,
+  validate,
+  resetPassword
+);
 
 module.exports = router;
