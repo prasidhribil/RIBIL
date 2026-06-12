@@ -1,7 +1,7 @@
--- RIBIL Auth schema (Sprint 1)
--- Idempotent: safe to run on a fresh or existing database.
+-- Migration 001 (UP): full Sprint 1 auth schema.
+-- Idempotent — mirrors db/schema.sql. Run on a fresh Postgres instance with:
+--   psql -d <db> -f db/migrations/001_auth_schema.up.sql
 
--- ── users ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
@@ -11,7 +11,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Sprint 1 additions: verification/active state, contact + Aadhaar fields.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(15);
@@ -22,8 +21,6 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAU
 
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
--- ── sessions ─────────────────────────────────────────────────────────────────
--- Source of truth for active refresh tokens. Rows are revoked on logout/rotation.
 CREATE TABLE IF NOT EXISTS sessions (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -38,8 +35,6 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_token_hash ON sessions(refresh_token_hash);
 
--- ── otp_verifications ────────────────────────────────────────────────────────
--- OTPs are single-use and expire in 10 minutes (both enforced in code).
 CREATE TABLE IF NOT EXISTS otp_verifications (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) NOT NULL,
@@ -52,8 +47,6 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
 
 CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_verifications(email);
 
--- ── audit_logs ───────────────────────────────────────────────────────────────
--- APPEND-ONLY. Never issue DELETE against this table.
 CREATE TABLE IF NOT EXISTS audit_logs (
   id SERIAL PRIMARY KEY,
   user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,

@@ -8,6 +8,7 @@ const adminOnly = require("./middleware/admin");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const apiAuthRoutes = require("./routes/apiAuthRoutes");
 
 const app = express();
 
@@ -23,6 +24,10 @@ app.use(express.json({ limit: "10kb" }));
 // Route Files
 app.use("/", authRoutes);
 app.use("/", userRoutes);
+
+// Full Sprint 1 auth flow (OTP, refresh, logout, password reset) lives under /api/auth.
+// The bare routes above are retained unchanged for backward compatibility.
+app.use("/api/auth", apiAuthRoutes);
 
 // Home Route
 app.get("/", (req, res) => {
