@@ -298,12 +298,60 @@ Requires Bearer token **and** admin role.
 
 ---
 
+## `/api/auth/*` — Full Sprint 1 auth flow
+
+The endpoints above are the original bare routes (retained for backward compatibility). The complete Sprint 1 flow — OTP email verification, refresh-token rotation, logout, and password reset — lives under the `/api/auth` namespace. Access tokens here are **15 min**; refresh tokens are **7 days** and stored server-side only as SHA-256 hashes in the `sessions` table.
+
+> Auth-middleware errors here carry a stable `code`: `MISSING_TOKEN`, `TOKEN_EXPIRED`, or `INVALID_TOKEN` (all `401`). `authorizeRole` returns `403 { "error": { "code": "FORBIDDEN" } }`.
+
+### `POST /api/auth/register`
+Public. bcrypt(12). Creates an **unverified** user and emails a 6-digit OTP (10-min expiry). Optional `phone` (10-digit Indian) and `role` (`buyer`/`agent`).
+```bash
+curl -X POST http://localhost:3000/api/auth/register -H "Content-Type: application/json" \
+  -d '{"name":"Jo","email":"jo@example.com","password":"Str0ng!Pass","role":"buyer"}'
+```
+**201** → `{ "message": "Registration successful. Verify the OTP sent to your email." }` · **409** if email exists.
+
+### `POST /api/auth/verify-otp`
+Public. Validates the register OTP (single-use + expiry) and sets `is_verified=true`.
+Body: `{ email, otp }` → **200** `{ "message": "Account verified successfully" }` · **400** invalid/expired OTP.
+
+### `POST /api/auth/resend-otp`
+Public. Invalidates prior register OTPs and issues a new one. Throttled to **3/hour** per email.
+Body: `{ email }` → **200** · **429** when throttle exceeded.
+
+### `POST /api/auth/login`
+Public. Gates on `is_verified` and `is_active`. Returns an access + refresh token pair and records a session.
+Body: `{ email, password }` → **200** `{ "message": "Login successful", "accessToken", "refreshToken" }` · **401** bad creds · **403** unverified/deactivated.
+
+### `POST /api/auth/refresh`
+Public (refresh token in body). Verifies the refresh JWT and its active session, then **rotates**: the old session is revoked and a new token pair is issued.
+Body: `{ refreshToken }` → **200** `{ "accessToken", "refreshToken" }` · **401** invalid/expired/revoked.
+
+### `POST /api/auth/logout`
+Public (refresh token in body). Revokes the matching session.
+Body: `{ refreshToken }` → **200** `{ "message": "Logged out successfully" }`.
+
+### `POST /api/auth/logout-all`
+**Requires Bearer access token.** Revokes every active session for the caller.
+→ **200** `{ "message": "Logged out from all devices" }` · **401** without token.
+
+### `POST /api/auth/forgot-password`
+Public. **Always returns 200** (no email enumeration). Emails a reset OTP if the account exists.
+Body: `{ email }` → **200** `{ "message": "If that email is registered, a reset code has been sent." }`.
+
+### `POST /api/auth/reset-password`
+Public. Validates the reset OTP, sets a new bcrypt(12) password, and revokes all of that user's sessions.
+Body: `{ email, otp, newPassword }` → **200** `{ "message": "Password reset successfully" }` · **400** invalid/expired OTP or weak password.
+
+---
+
 ## Endpoint summary
 
-| Method | Route | Auth | Rate-limited |
-|--------|-------|------|--------------|
-| POST | `/register` | public | 3/hour |
-| POST | `/login` | public | 5/15min |
+| Method | Route | Auth | Notes |
+|--------|-------|------|-------|
+| POST | `/register` | public | legacy; 3/hour |
+| POST | `/login` | public | legacy; 5/15min |
 | GET | `/profile` | Bearer | – |
 | GET | `/me` | Bearer | – |
 | GET | `/admin` | Bearer + admin | – |
@@ -311,6 +359,15 @@ Requires Bearer token **and** admin role.
 | PUT | `/users/:id` | Bearer (owner or admin) | – |
 | DELETE | `/users/:id` | Bearer (owner or admin) | – |
 | DELETE | `/admin/users/:id` | Bearer + admin | – |
+| POST | `/api/auth/register` | public | bcrypt(12) + OTP |
+| POST | `/api/auth/verify-otp` | public | activates account |
+| POST | `/api/auth/resend-otp` | public | 3/hour |
+| POST | `/api/auth/login` | public | access(15m)+refresh(7d) |
+| POST | `/api/auth/refresh` | refresh token | rotates session |
+| POST | `/api/auth/logout` | refresh token | revoke one session |
+| POST | `/api/auth/logout-all` | Bearer | revoke all sessions |
+| POST | `/api/auth/forgot-password` | public | always 200 |
+| POST | `/api/auth/reset-password` | reset OTP | revoke all sessions |
 
 ## Local setup
 
@@ -320,5 +377,5 @@ npm install
 cp .env.example .env        # set a strong JWT_SECRET and PG* / DATABASE_URL
 psql -d auth_practice -f db/schema.sql
 npm run dev                 # http://localhost:3000
-npm test                    # 22 Jest + supertest tests (DB mocked)
+npm test                    # 52 Jest + supertest tests (DB mocked)
 ```

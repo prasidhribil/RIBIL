@@ -3,7 +3,7 @@
 **Reviewer:** Manish (Member 1 — Testing / QA)
 **Branch:** `feature/auth`
 **Date:** 2026-06-12
-**Method:** Static review + 22 automated tests (`npm test`, all passing) + live testing against PostgreSQL 16.
+**Method:** Static review + 52 automated tests (`npm test`, all passing) + live testing against PostgreSQL 16.
 
 ## Summary
 
@@ -14,8 +14,9 @@ observations and one CI gap that this deliverable fixes.
 
 | State | Count |
 |-------|-------|
-| Resolved & verified | 8 |
-| Open observations (non-blocking) | 4 |
+| Resolved & verified (earlier QA) | 8 |
+| Resolved during `/api/auth` work (OBS-3, F-1) | 2 |
+| Open observations (non-blocking) | 3 |
 | Blocking defects | 0 |
 
 ---
@@ -44,8 +45,16 @@ duplicate-email handled both pre-check and via PG `23505`, and `app` exported fo
 |----|----------|-------------|----------------|
 | OBS-1 | Low | No CORS middleware. A browser SPA on another origin cannot call the API. | Add `cors` with an allow-list before frontend integration. |
 | OBS-2 | Low | `express-rate-limit` uses the default in-memory store and `trust proxy` is not set. Limits are per-process and, behind a proxy, may key all clients to one IP. | Use a shared store (Redis) for multi-instance; set `app.set("trust proxy", 1)` when behind a proxy. |
-| OBS-3 | Low | JWTs are 1-hour, non-revocable, with no refresh-token flow. | Add refresh tokens / rotation + a revocation list in a later sprint. |
+| OBS-3 | Resolved | JWTs were 1-hour, non-revocable, with no refresh-token flow. | Resolved: `/api/auth` now issues 15m access + 7d refresh tokens with rotation and a `sessions` revocation table. |
 | OBS-4 | Info | `Dockerfile` `CMD ["sh"]` does not start the app, and `docker-compose.yml` provisions Postgres/Redis but not the API service. | If containerized run is intended for Sprint 1, set `CMD ["node","backend/index.js"]` and add an `app` service. (Out of scope for auth verification.) |
+
+---
+
+## Defect found & fixed during `/api/auth` live testing
+
+| ID | Severity | Defect | Fix | Evidence |
+|----|----------|--------|-----|----------|
+| F-1 | Medium | Two refresh tokens signed within the same second were byte-identical (`{id,type,iat,exp}` only) → identical SHA-256 hash, so rotation could not distinguish the old token from the new one and a rotated-out token still worked. | Added a random `jti` to every refresh token so each issued token (and its stored hash) is unique. | After fix: reuse of a rotated token → **401**; new token → **200** (verified live). |
 
 ---
 
@@ -61,8 +70,8 @@ this deliverable.**
 ## Test evidence
 
 ```
-Test Suites: 3 passed, 3 total
-Tests:       22 passed, 22 total
+Test Suites: 7 passed, 7 total
+Tests:       52 passed, 52 total
 ```
 
 Live spot-checks (PostgreSQL 16, `feature/auth`):
@@ -75,6 +84,12 @@ PUT  /users/2      (bad email)   -> 400
 PUT  /users/abc    (non-int id)  -> 400
 GET  /            (X-JO-TEST)     -> absent
 POST /login        (valid)       -> 200 + token
+
+/api/auth register -> verify-otp -> login            -> 201 -> 200 -> 200 + access/refresh
+/api/auth login before OTP verify                    -> 403
+/api/auth refresh (rotate); reuse old refresh token  -> 200 new pair; old -> 401
+/api/auth logout-all then refresh                    -> 401 (sessions revoked)
+/api/auth forgot-password -> reset-password -> login -> 200 -> 200 -> 200
 ```
 
 ## Sign-off

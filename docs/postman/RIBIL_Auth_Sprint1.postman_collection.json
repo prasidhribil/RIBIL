@@ -8,6 +8,9 @@
     { "key": "baseUrl", "value": "http://localhost:3000" },
     { "key": "token", "value": "" },
     { "key": "adminToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "otp", "value": "000000" },
+    { "key": "apiEmail", "value": "jo@example.com" },
     { "key": "userId", "value": "1" }
   ],
   "item": [
@@ -87,6 +90,117 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"Str0ng!Pass\"\n}"
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Auth (/api/auth full flow)",
+      "item": [
+        {
+          "name": "Register (api)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jo\",\n  \"email\": \"{{apiEmail}}\",\n  \"password\": \"Str0ng!Pass\",\n  \"role\": \"buyer\"\n}" }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/verify-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "verify-otp"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{apiEmail}}\",\n  \"otp\": \"{{otp}}\"\n}" }
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/resend-otp", "host": ["{{baseUrl}}"], "path": ["api", "auth", "resend-otp"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{apiEmail}}\"\n}" }
+          }
+        },
+        {
+          "name": "Login (api) - saves tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.accessToken) pm.collectionVariables.set('token', body.accessToken);",
+                  "if (body.refreshToken) pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{apiEmail}}\",\n  \"password\": \"Str0ng!Pass\"\n}" }
+          }
+        },
+        {
+          "name": "Refresh (rotate) - saves new tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const body = pm.response.json();",
+                  "if (body.accessToken) pm.collectionVariables.set('token', body.accessToken);",
+                  "if (body.refreshToken) pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh"] },
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          }
+        },
+        {
+          "name": "Logout (single session)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] },
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }
+          }
+        },
+        {
+          "name": "Logout All (Bearer)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/logout-all", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout-all"] }
+          }
+        },
+        {
+          "name": "Forgot Password (always 200)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "forgot-password"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{apiEmail}}\"\n}" }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api", "auth", "reset-password"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{apiEmail}}\",\n  \"otp\": \"{{otp}}\",\n  \"newPassword\": \"N3w!Strong1\"\n}" }
           }
         }
       ]

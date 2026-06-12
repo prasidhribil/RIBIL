@@ -91,8 +91,9 @@ CREATE TABLE IF NOT EXISTS users (
 
 ## 6. Testing & CI
 
-- **Local:** `cd backend && npm test` — 22 Jest + supertest tests, DB and rate-limiter mocked,
-  so **no live Postgres is required** to run them.
+- **Local:** `cd backend && npm test` — 52 Jest + supertest tests, DB and rate-limiter mocked,
+  so **no live Postgres is required** to run them. (22 cover the legacy routes; 30 cover the
+  `/api/auth` OTP, session/refresh, password-reset, and middleware flows.)
 - **CI:** owned by the CI/CD member — not covered by this deliverable. (At time of writing the
   workflow is a placeholder; running the suite in CI is tracked with that owner.)
 - **Manual/integration:** import `docs/postman/RIBIL_Auth_Sprint1.postman_collection.json` and the
@@ -111,8 +112,14 @@ CREATE TABLE IF NOT EXISTS users (
 | `DELETE /users/:id` owner, `DELETE /admin/users/:id` admin | 200 / 200 |
 | Login/Register rate limits | 429 after threshold |
 | SQL injection probe on `/login` | safe (parameterized) → 401 |
+| `/api/auth` register → verify-otp → login | 201 → 200 → 200 + access/refresh |
+| `/api/auth` login before OTP verify | 403 (gated on `is_verified`) |
+| `/api/auth` refresh rotation (reuse old token) | new pair issued; old token → 401 |
+| `/api/auth` logout-all then refresh | sessions revoked → 401 |
+| `/api/auth` forgot-password → reset-password → login (new pw) | 200 → 200 → 200 |
 
 ## 8. Known integration gaps
 
-See `docs/BUG_REPORT.md`. Nothing blocks Sprint 1 sign-off; open items are CORS, shared
-rate-limit store for multi-instance, and refresh-token strategy (future sprint).
+See `docs/BUG_REPORT.md`. Nothing blocks Sprint 1 sign-off; open items are CORS and a shared
+rate-limit store for multi-instance. Refresh-token rotation is now implemented under `/api/auth`
+(sessions stored hashed; rotation revokes the prior token via a per-token `jti`).
