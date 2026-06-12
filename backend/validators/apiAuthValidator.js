@@ -31,8 +31,8 @@ const apiRegisterValidation = [
     .withMessage("Phone must be a valid 10-digit Indian number"),
   body("role")
     .optional()
-    .isIn(["buyer", "agent", "user"])
-    .withMessage("Role must be buyer or agent"),
+    .isIn(["buyer", "seller"])
+    .withMessage("Role must be buyer or seller"),
 ];
 
 const apiLoginValidation = [
