@@ -4,14 +4,12 @@ const jwt = require("jsonwebtoken");
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set. Define it in the environment.");
+}
+
 const register = async (req, res) => {
   const { name, email, password } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({
-      message: "All fields are required",
-    });
-  }
 
   try {
     const existingUser = await pool.query(
@@ -36,6 +34,12 @@ const register = async (req, res) => {
       message: "Registration successful",
     });
   } catch (error) {
+    if (error.code === "23505") {
+      return res.status(409).json({
+        message: "Email already exists",
+      });
+    }
+
     console.error(error);
 
     res.status(500).json({

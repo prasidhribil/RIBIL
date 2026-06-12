@@ -1,4 +1,4 @@
-const { body, validationResult } = require("express-validator");
+const { body, param, validationResult } = require("express-validator");
 
 const registerValidation = [
   body("name")
@@ -8,7 +8,8 @@ const registerValidation = [
 
   body("email")
     .isEmail()
-    .withMessage("Valid email is required"),
+    .withMessage("Valid email is required")
+    .normalizeEmail(),
 
   body("password")
     .isLength({ min: 8 })
@@ -17,6 +18,39 @@ const registerValidation = [
     .withMessage(
       "Password must contain uppercase, lowercase, number and special character"
     ),
+];
+
+const loginValidation = [
+  body("email")
+    .isEmail()
+    .withMessage("Valid email is required")
+    .normalizeEmail(),
+
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required"),
+];
+
+const updateUserValidation = [
+  param("id")
+    .isInt({ min: 1 })
+    .withMessage("Valid user id is required"),
+
+  body("name")
+    .trim()
+    .notEmpty()
+    .withMessage("Name is required"),
+
+  body("email")
+    .isEmail()
+    .withMessage("Valid email is required")
+    .normalizeEmail(),
+];
+
+const idParamValidation = [
+  param("id")
+    .isInt({ min: 1 })
+    .withMessage("Valid user id is required"),
 ];
 
 const validate = (req, res, next) => {
@@ -33,5 +67,8 @@ const validate = (req, res, next) => {
 
 module.exports = {
   registerValidation,
+  loginValidation,
+  updateUserValidation,
+  idParamValidation,
   validate,
 };

@@ -8,6 +8,7 @@ const {
 
 const {
   registerValidation,
+  loginValidation,
   validate,
 } = require("../validators/authValidator");
 
@@ -27,6 +28,8 @@ router.post(
 router.post(
   "/login",
   loginLimiter,
+  loginValidation,
+  validate,
   login
 );
 

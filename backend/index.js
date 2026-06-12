@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const helmet = require("helmet");
 
@@ -16,17 +18,7 @@ app.disable("x-powered-by");
 app.use(helmet());
 
 // Parse JSON
-app.use(express.json());
-
-// Debug middleware (temporary)
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-
-  // Temporary header to verify middleware execution
-  res.setHeader("X-JO-TEST", "WORKING");
-
-  next();
-});
+app.use(express.json({ limit: "10kb" }));
 
 // Route Files
 app.use("/", authRoutes);
@@ -79,6 +71,10 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;
