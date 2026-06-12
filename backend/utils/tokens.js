@@ -21,10 +21,14 @@ function signAccessToken(user) {
 }
 
 // Long-lived refresh token. Only the SHA-256 hash is ever stored server-side.
+// A random jti guarantees each issued token (and thus its hash) is unique, so
+// rotation reliably revokes the exact previous token.
 function signRefreshToken(user) {
-  return jwt.sign({ id: user.id, type: "refresh" }, JWT_SECRET, {
-    expiresIn: REFRESH_TTL,
-  });
+  return jwt.sign(
+    { id: user.id, type: "refresh", jti: crypto.randomBytes(16).toString("hex") },
+    JWT_SECRET,
+    { expiresIn: REFRESH_TTL }
+  );
 }
 
 function verifyRefreshToken(token) {
