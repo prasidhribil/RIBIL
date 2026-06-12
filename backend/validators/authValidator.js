@@ -33,7 +33,7 @@ const loginValidation = [
 
 const updateUserValidation = [
   param("id")
-    .isInt({ min: 1 })
+    .isUUID()
     .withMessage("Valid user id is required"),
 
   body("name")
@@ -49,7 +49,7 @@ const updateUserValidation = [
 
 const idParamValidation = [
   param("id")
-    .isInt({ min: 1 })
+    .isUUID()
     .withMessage("Valid user id is required"),
 ];
 

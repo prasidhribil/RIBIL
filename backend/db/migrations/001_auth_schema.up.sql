@@ -2,12 +2,14 @@
 -- Idempotent — mirrors db/schema.sql. Run on a fresh Postgres instance with:
 --   psql -d <db> -f db/migrations/001_auth_schema.up.sql
 
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password TEXT NOT NULL,
-  role VARCHAR(20) NOT NULL DEFAULT 'user',
+  role VARCHAR(20) NOT NULL DEFAULT 'buyer',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -23,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 
 CREATE TABLE IF NOT EXISTS sessions (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   refresh_token_hash VARCHAR(255) NOT NULL,
   device_info TEXT,
   ip_address INET,
@@ -49,7 +51,7 @@ CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_verifications(email);
 
 CREATE TABLE IF NOT EXISTS audit_logs (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   action VARCHAR(50) NOT NULL,
   resource VARCHAR(100),
   ip_address INET,

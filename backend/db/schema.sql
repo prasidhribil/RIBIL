@@ -1,13 +1,16 @@
 -- RIBIL Auth schema (Sprint 1)
--- Idempotent: safe to run on a fresh or existing database.
+-- Idempotent on a fresh database. NOTE: users.id is a UUID; converting an
+-- existing integer-id database is not an in-place ALTER — drop & recreate.
+
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ── users ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password TEXT NOT NULL,
-  role VARCHAR(20) NOT NULL DEFAULT 'user',
+  role VARCHAR(20) NOT NULL DEFAULT 'buyer',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -26,7 +29,7 @@ CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 -- Source of truth for active refresh tokens. Rows are revoked on logout/rotation.
 CREATE TABLE IF NOT EXISTS sessions (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   refresh_token_hash VARCHAR(255) NOT NULL,
   device_info TEXT,
   ip_address INET,
@@ -56,7 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_verifications(email);
 -- APPEND-ONLY. Never issue DELETE against this table.
 CREATE TABLE IF NOT EXISTS audit_logs (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   action VARCHAR(50) NOT NULL,
   resource VARCHAR(100),
   ip_address INET,

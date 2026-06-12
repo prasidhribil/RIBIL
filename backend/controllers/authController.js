@@ -8,8 +8,12 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not set. Define it in the environment.");
 }
 
+// Public signup roles only — admin accounts are seeded/created out of band.
+const ALLOWED_ROLES = ["buyer", "seller"];
+
 const register = async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role } = req.body;
+  const userRole = ALLOWED_ROLES.includes(role) ? role : "buyer";
 
   try {
     const existingUser = await pool.query(
@@ -27,7 +31,7 @@ const register = async (req, res) => {
 
     await pool.query(
       "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4)",
-      [name, email, hashedPassword, "user"]
+      [name, email, hashedPassword, userRole]
     );
 
     res.status(201).json({

@@ -18,7 +18,7 @@ const updateUser = async (req, res) => {
   const { name, email } = req.body;
 
   if (
-    req.user.id !== Number(id) &&
+    String(req.user.id) !== String(id) &&
     req.user.role !== "admin"
   ) {
     return res.status(403).json({
@@ -80,7 +80,7 @@ const deleteUser = async (req, res) => {
   const { id } = req.params;
 
   if (
-    req.user.id !== Number(id) &&
+    String(req.user.id) !== String(id) &&
     req.user.role !== "admin"
   ) {
     return res.status(403).json({

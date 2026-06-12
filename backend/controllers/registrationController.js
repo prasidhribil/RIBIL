@@ -7,10 +7,13 @@ const { writeAudit, requestMeta } = require("../utils/audit");
 
 const SALT_ROUNDS = 12;
 const MAX_RESENDS_PER_HOUR = 3;
+// Public signup roles only — admin accounts are seeded/created out of band.
+const ALLOWED_ROLES = ["buyer", "seller"];
 
 // POST /api/auth/register — create an unverified user and email a register OTP.
 const register = async (req, res) => {
   const { name, email, password, phone, role } = req.body;
+  const userRole = ALLOWED_ROLES.includes(role) ? role : "buyer";
   const meta = requestMeta(req);
 
   try {
@@ -27,7 +30,7 @@ const register = async (req, res) => {
       `INSERT INTO users (name, email, password, role, phone, is_verified)
        VALUES ($1, $2, $3, $4, $5, false)
        RETURNING id`,
-      [name, email, hashedPassword, role || "user", phone || null]
+      [name, email, hashedPassword, userRole, phone || null]
     );
     const userId = inserted.rows[0].id;
 
