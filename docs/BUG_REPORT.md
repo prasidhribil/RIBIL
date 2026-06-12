@@ -49,12 +49,12 @@ duplicate-email handled both pre-check and via PG `23505`, and `app` exported fo
 
 ---
 
-## CI gap fixed by this deliverable
+## CI observation (owned by another member — not changed here)
 
-The existing `.github/workflows/ci.yml` was a **stub** — it only ran
-`echo "CI Pipeline Running Successfully"` and never executed the test suite, so the "tests passing
-in CI" status was not actually enforced. This PR replaces it with a workflow that runs
-`npm ci` + `npm test` in `backend/` on every push and pull request (Node 18 & 20).
+The existing `.github/workflows/ci.yml` is a **stub** — it only runs
+`echo "CI Pipeline Running Successfully"` and does not execute the test suite, so a "tests passing
+in CI" status is not currently enforced. Flagging for the CI/CD owner; **no CI changes are made in
+this deliverable.**
 
 ---
 
@@ -79,5 +79,6 @@ POST /login        (valid)       -> 200 + token
 
 ## Sign-off
 
-**Sprint 1 authentication: PASS.** No blocking defects. Recommend merging this documentation +
-CI deliverable; track OBS-1..4 as backlog items for hardening.
+**Sprint 1 authentication: PASS.** No blocking defects. Recommend merging this documentation
+deliverable; track OBS-1..4 as backlog items for hardening, and refer the CI observation above to
+the CI/CD owner.

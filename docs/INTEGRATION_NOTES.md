@@ -93,8 +93,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 - **Local:** `cd backend && npm test` — 22 Jest + supertest tests, DB and rate-limiter mocked,
   so **no live Postgres is required** to run them.
-- **CI:** `.github/workflows/ci.yml` runs `npm ci` + `npm test` in `backend/` on every push/PR
-  (Node 18 & 20 matrix). Because the DB is mocked, CI needs no Postgres service.
+- **CI:** owned by the CI/CD member — not covered by this deliverable. (At time of writing the
+  workflow is a placeholder; running the suite in CI is tracked with that owner.)
 - **Manual/integration:** import `docs/postman/RIBIL_Auth_Sprint1.postman_collection.json` and the
   matching environment; run the requests top-to-bottom (Register → Login captures the token
   automatically into `{{token}}`).
