@@ -239,6 +239,28 @@ const getAuditLogs = async (req, res) => {
     });
   }
 };
+const getAdminStats = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        COUNT(*) AS total_users,
+        COUNT(*) FILTER (WHERE is_active = true) AS active_users,
+        COUNT(*) FILTER (WHERE is_verified = true) AS verified_users,
+        COUNT(*) FILTER (WHERE role = 'buyer') AS buyers,
+        COUNT(*) FILTER (WHERE role = 'seller') AS sellers,
+        COUNT(*) FILTER (WHERE role = 'admin') AS admins
+      FROM users
+    `);
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
 module.exports = {
   getUsers,
 
@@ -251,7 +273,9 @@ module.exports = {
   deactivateUser,
 
   reactivateUser,
-
+  
   getAuditLogs,
+
+  getAdminStats,
 
 };

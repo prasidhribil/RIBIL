@@ -25,6 +25,8 @@ const {
 
   getAuditLogs,
 
+  getAdminStats,
+
 } = require("../controllers/userController");
 
 // Admin: Get all users
@@ -93,6 +95,13 @@ router.get(
   auth,
   adminOnly,
   getAuditLogs
+);
+// Admin: Dashboard stats
+router.get(
+  "/admin/stats",
+  auth,
+  adminOnly,
+  getAdminStats
 );
 
 module.exports = router;
