@@ -1,20 +1,31 @@
 const rateLimit = require("express-rate-limit");
+const { RedisStore } = require("rate-limit-redis");
+const redis = require("../config/redis");
 
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: {
-    message: "Too many login attempts. Try again later.",
-  },
-});
+const createLimiter = (windowMs, max, message) =>
+  rateLimit({
+    windowMs,
+    max,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message },
 
-const registerLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 3,
-  message: {
-    message: "Too many registration attempts. Try again later.",
-  },
-});
+    store: new RedisStore({
+      sendCommand: (...args) => redis.call(...args),
+    }),
+  });
+
+const loginLimiter = createLimiter(
+  15 * 60 * 1000,
+  5,
+  "Too many login attempts. Try again later."
+);
+
+const registerLimiter = createLimiter(
+  60 * 60 * 1000,
+  3,
+  "Too many registration attempts. Try again later."
+);
 
 module.exports = {
   loginLimiter,
