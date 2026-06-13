@@ -11,12 +11,20 @@ const {
 } = require("../validators/authValidator");
 
 const {
-  getUsers,
+    getUsers,
+
   updateUser,
+
   deleteUser,
+
   changeUserRole,
+
   deactivateUser,
+
   reactivateUser,
+
+  getAuditLogs,
+
 } = require("../controllers/userController");
 
 // Admin: Get all users
@@ -78,6 +86,13 @@ router.patch(
   idParamValidation,
   validate,
   reactivateUser
+);
+// Admin: View audit logs
+router.get(
+  "/admin/audit-logs",
+  auth,
+  adminOnly,
+  getAuditLogs
 );
 
 module.exports = router;

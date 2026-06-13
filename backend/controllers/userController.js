@@ -214,6 +214,31 @@ const reactivateUser = async (req, res) => {
     });
   }
 };
+const getAuditLogs = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        user_id,
+        action,
+        resource,
+        ip_address,
+        user_agent,
+        timestamp
+      FROM audit_logs
+      ORDER BY timestamp DESC
+      LIMIT 100
+    `);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
 module.exports = {
   getUsers,
 
@@ -226,5 +251,7 @@ module.exports = {
   deactivateUser,
 
   reactivateUser,
+
+  getAuditLogs,
 
 };
