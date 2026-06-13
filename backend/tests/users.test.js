@@ -126,3 +126,92 @@ describe("DELETE /users/:id", () => {
     expect(res.status).toBe(404);
   });
 });
+describe("Admin user management", () => {
+  test("admin can change a user's role", async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: USER_ID,
+          email: "u@example.com",
+          role: "seller",
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .patch(`/admin/users/${USER_ID}/role`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ role: "seller" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.role).toBe("seller");
+  });
+
+  test("invalid role returns 400", async () => {
+    const res = await request(app)
+      .patch(`/admin/users/${USER_ID}/role`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ role: "superadmin" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid role");
+  });
+
+  test("non-admin cannot change roles", async () => {
+    const res = await request(app)
+      .patch(`/admin/users/${USER_ID}/role`)
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ role: "seller" });
+
+    expect(res.status).toBe(403);
+  });
+
+  test("admin can deactivate a user", async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: USER_ID,
+          email: "u@example.com",
+          is_active: false,
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .patch(`/admin/users/${USER_ID}/deactivate`)
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.is_active).toBe(false);
+  });
+
+  test("admin can reactivate a user", async () => {
+    pool.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: USER_ID,
+          email: "u@example.com",
+          is_active: true,
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .patch(`/admin/users/${USER_ID}/reactivate`)
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.is_active).toBe(true);
+  });
+
+  test("404 when changing role of missing user", async () => {
+    pool.query.mockResolvedValueOnce({ rows: [] });
+
+    const res = await request(app)
+      .patch(`/admin/users/${MISSING_ID}/role`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ role: "seller" });
+
+    expect(res.status).toBe(404);
+  });
+});

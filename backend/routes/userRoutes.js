@@ -11,13 +11,28 @@ const {
 } = require("../validators/authValidator");
 
 const {
-  getUsers,
+    getUsers,
+
   updateUser,
+
   deleteUser,
+
+  changeUserRole,
+
+  deactivateUser,
+
+  reactivateUser,
+
+  getAuditLogs,
+
+  getAdminStats,
+
 } = require("../controllers/userController");
 
+// Admin: Get all users
 router.get("/users", auth, adminOnly, getUsers);
 
+// User/Admin: Update user
 router.put(
   "/users/:id",
   auth,
@@ -26,6 +41,7 @@ router.put(
   updateUser
 );
 
+// User/Admin: Delete own account or admin delete
 router.delete(
   "/users/:id",
   auth,
@@ -34,7 +50,7 @@ router.delete(
   deleteUser
 );
 
-// Admin delete user
+// Admin: Delete any user
 router.delete(
   "/admin/users/:id",
   auth,
@@ -42,6 +58,50 @@ router.delete(
   idParamValidation,
   validate,
   deleteUser
+);
+
+// Admin: Change user role
+router.patch(
+  "/admin/users/:id/role",
+  auth,
+  adminOnly,
+  idParamValidation,
+  validate,
+  changeUserRole
+);
+
+// Admin: Deactivate user
+router.patch(
+  "/admin/users/:id/deactivate",
+  auth,
+  adminOnly,
+  idParamValidation,
+  validate,
+  deactivateUser
+);
+
+// Admin: Reactivate user
+router.patch(
+  "/admin/users/:id/reactivate",
+  auth,
+  adminOnly,
+  idParamValidation,
+  validate,
+  reactivateUser
+);
+// Admin: View audit logs
+router.get(
+  "/admin/audit-logs",
+  auth,
+  adminOnly,
+  getAuditLogs
+);
+// Admin: Dashboard stats
+router.get(
+  "/admin/stats",
+  auth,
+  adminOnly,
+  getAdminStats
 );
 
 module.exports = router;
