@@ -9,6 +9,7 @@ const adminOnly = require("./middleware/admin");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const apiAuthRoutes = require("./routes/apiAuthRoutes");
+const digilockerRoutes = require("./routes/digilockerRoutes");
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use("/", userRoutes);
 // Full Sprint 1 auth flow (OTP, refresh, logout, password reset) lives under /api/auth.
 // The bare routes above are retained unchanged for backward compatibility.
 app.use("/api/auth", apiAuthRoutes);
+app.use("/api/auth", digilockerRoutes);
 
 // Home Route
 app.get("/", (req, res) => {
