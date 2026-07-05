@@ -1,0 +1,48 @@
+{
+  "generated_at": "2026-07-05T06:45:39.682Z",
+  "property": {
+    "id": "4d67bd3b-5ccf-4d87-9ddf-9c12074d2960",
+    "user_id": "1457acc6-aa7c-455a-9871-7dc7147dabe9",
+    "survey_no": "47/3",
+    "village": "Kadubeesanahalli",
+    "hobli": "Varthur",
+    "taluk": "Bengaluru East",
+    "district": "Bengaluru",
+    "lat": null,
+    "lng": null,
+    "area_sqft": null,
+    "cdp_zone": null,
+    "status": "pending",
+    "created_at": "2026-06-27T15:26:22.946Z",
+    "updated_at": "2026-06-27T15:26:22.946Z"
+  },
+  "ocr_data": {
+    "id": "51634e45-759f-4732-aaac-46f1227e376b",
+    "document_id": "e20a4fd7-7de4-4a9b-a6a9-7e3ba5805795",
+    "owner_name": "John Doe",
+    "survey_no": "47/3",
+    "area_acres": 2.35,
+    "land_use": "Residential",
+    "registration_date": "2024-01-14T18:30:00.000Z",
+    "amount_rs": "2500000",
+    "parties": {
+      "buyer": "John Doe",
+      "seller": "ABC Developers"
+    },
+    "raw_extract": "Dummy OCR output generated for Sprint 2",
+    "extracted_at": "2026-06-27T17:22:23.087Z"
+  },
+  "verification": {
+    "verified": true,
+    "mismatch_count": 0,
+    "mismatches": []
+  },
+  "risk": {
+    "risk_score": 0,
+    "risk_level": "LOW",
+    "verified": true
+  },
+  "recommendations": [
+    "Property verification passed."
+  ]
+}
