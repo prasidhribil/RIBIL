@@ -1,26 +1,39 @@
+function isUUID(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 const {
     getVerificationSummary,
     getExistingVerification,
     createVerification,
-    updateVerification
+    updateVerification,
+    areAllChecksTerminal
 } = require("../services/verificationService");
 
 // Allowed verification states
 const VALID_STATES = [
-    "pending",
-    "running",
-    "passed",
-    "failed",
-    "flagged",
-    "skipped"
+    "PENDING",
+    "RUNNING",
+    "PASSED",
+    "FAILED",
+    "FLAGGED",
+    "SKIPPED"
 ];
 
 // Update verification status
 const updateVerificationStatus = async (req, res) => {
+
     try {
+
         const { id } = req.params;
 
-        const {
+        if (!isUUID(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid property ID."
+            });
+        }
+
+        let {
             check_type,
             status,
             result_summary,
@@ -28,7 +41,6 @@ const updateVerificationStatus = async (req, res) => {
             source_url
         } = req.body;
 
-        // Validate required fields
         if (!check_type || !status) {
             return res.status(400).json({
                 success: false,
@@ -36,7 +48,10 @@ const updateVerificationStatus = async (req, res) => {
             });
         }
 
-        // Validate status
+        // Normalize values
+        check_type = check_type.toLowerCase();
+        status = status.toUpperCase();
+
         if (!VALID_STATES.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -47,6 +62,7 @@ const updateVerificationStatus = async (req, res) => {
         let verification = await getExistingVerification(id, check_type);
 
         if (!verification) {
+
             verification = await createVerification({
                 property_id: id,
                 check_type,
@@ -55,7 +71,9 @@ const updateVerificationStatus = async (req, res) => {
                 flag_details,
                 source_url
             });
+
         } else {
+
             verification = await updateVerification({
                 property_id: id,
                 check_type,
@@ -64,36 +82,54 @@ const updateVerificationStatus = async (req, res) => {
                 flag_details,
                 source_url
             });
+
         }
+
+        const completed = await areAllChecksTerminal(id);
 
         return res.status(200).json({
             success: true,
             message: "Verification updated successfully.",
+            all_checks_completed: completed,
             data: verification
         });
 
     } catch (error) {
+
         console.error(error);
 
         return res.status(500).json({
             success: false,
-            message: "Internal Server Error"
+            message: error.message || "Internal Server Error"
         });
+
     }
+
 };
 
 // Get verification summary
 const getVerificationSummaryController = async (req, res) => {
+
     try {
 
         const { id } = req.params;
 
+        if (!isUUID(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid property ID."
+            });
+        }
+
         const checks = await getVerificationSummary(id);
+
+        const completed = await areAllChecksTerminal(id);
 
         return res.status(200).json({
             success: true,
             property_id: id,
             total_checks: checks.length,
+            all_checks_completed: completed,
             checks
         });
 
@@ -103,10 +139,11 @@ const getVerificationSummaryController = async (req, res) => {
 
         return res.status(500).json({
             success: false,
-            message: "Internal Server Error"
+            message: error.message || "Internal Server Error"
         });
 
     }
+
 };
 
 module.exports = {

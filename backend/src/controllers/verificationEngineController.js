@@ -16,11 +16,25 @@ const {
     saveReport
 } = require("../services/storageReportService");
 
+const {
+    areAllChecksTerminal
+} = require("../services/verificationService");
+
 const runVerification = async (req, res) => {
 
     try {
 
         const { propertyId } = req.params;
+
+        // Verify that all verification checks have completed
+        const completed = await areAllChecksTerminal(propertyId);
+
+        if (!completed) {
+            return res.status(409).json({
+                success: false,
+                message: "Verification pipeline is still running. Report cannot be generated yet."
+            });
+        }
 
         // Fetch Property
         const propertyResult = await pool.query(
@@ -69,15 +83,15 @@ const runVerification = async (req, res) => {
 
         const ocrData = ocrResult.rows[0];
 
-        // Compare
+        // Compare OCR with property data
         const comparisonResult =
             comparePropertyData(property, ocrData);
 
-        // Risk
+        // Calculate risk
         const riskResult =
             calculateRisk(comparisonResult);
 
-        // Generate Report
+        // Generate verification report
         const report =
             generateReport(
                 property,
@@ -86,11 +100,11 @@ const runVerification = async (req, res) => {
                 riskResult
             );
 
-        // Save report to local storage
+        // Save report
         const storage =
             await saveReport(propertyId, report);
 
-        // Save metadata to database
+        // Store metadata
         await pool.query(
             `
             INSERT INTO verification_reports
@@ -128,9 +142,7 @@ const runVerification = async (req, res) => {
             storage
         });
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 

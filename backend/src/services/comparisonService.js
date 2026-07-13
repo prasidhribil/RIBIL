@@ -1,12 +1,26 @@
+const normalizeText = (value) => {
+    if (!value) return "";
+    return value
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+};
+
+const compareNumbers = (a, b, tolerance = 0.01) => {
+    return Math.abs(Number(a) - Number(b)) <= tolerance;
+};
+
 const comparePropertyData = (property, ocrData) => {
+
     const mismatches = [];
 
-    // Owner comparison
+    // Owner Name
     if (
         property.owner_name &&
         ocrData.owner_name &&
-        property.owner_name.trim().toLowerCase() !==
-        ocrData.owner_name.trim().toLowerCase()
+        normalizeText(property.owner_name) !==
+        normalizeText(ocrData.owner_name)
     ) {
         mismatches.push({
             field: "owner_name",
@@ -20,7 +34,8 @@ const comparePropertyData = (property, ocrData) => {
     if (
         property.survey_no &&
         ocrData.survey_no &&
-        property.survey_no !== ocrData.survey_no
+        normalizeText(property.survey_no) !==
+        normalizeText(ocrData.survey_no)
     ) {
         mismatches.push({
             field: "survey_no",
@@ -34,7 +49,10 @@ const comparePropertyData = (property, ocrData) => {
     if (
         property.area_acres &&
         ocrData.area_acres &&
-        Number(property.area_acres) !== Number(ocrData.area_acres)
+        !compareNumbers(
+            property.area_acres,
+            ocrData.area_acres
+        )
     ) {
         mismatches.push({
             field: "area_acres",
@@ -48,7 +66,8 @@ const comparePropertyData = (property, ocrData) => {
     if (
         property.land_use &&
         ocrData.land_use &&
-        property.land_use !== ocrData.land_use
+        normalizeText(property.land_use) !==
+        normalizeText(ocrData.land_use)
     ) {
         mismatches.push({
             field: "land_use",
@@ -61,6 +80,13 @@ const comparePropertyData = (property, ocrData) => {
     return {
         verified: mismatches.length === 0,
         mismatch_count: mismatches.length,
+        match_count: 4 - mismatches.length,
+        confidence:
+            mismatches.length === 0
+                ? "HIGH"
+                : mismatches.length <= 2
+                ? "MEDIUM"
+                : "LOW",
         mismatches
     };
 };
