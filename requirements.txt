@@ -1,0 +1,36 @@
+# FastAPI and ASGI Server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database - PostgreSQL with PostGIS (Windows-compatible)
+psycopg[binary]==3.1.13
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+geoalchemy2==0.14.2
+asyncpg==0.29.0
+
+# HTTP Client for External APIs
+httpx==0.25.2
+aiohttp==3.9.1
+
+# Redis Caching (Windows-compatible - removed hiredis C extension)
+redis==5.0.1
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Data Processing
+pandas==2.1.4
+
+# Logging
+python-json-logger==2.0.7
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+
+# Utilities
+orjson==3.9.10
+beautifulsoup4>=4.12.0

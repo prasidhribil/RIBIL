@@ -1,0 +1,35 @@
+{
+  "name": "gis-queue-service",
+  "version": "1.0.0",
+  "description": "Bull Queue infrastructure for GIS property verification pipeline",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest"
+  },
+  "keywords": [
+    "gis",
+    "bull",
+    "queue",
+    "redis",
+    "express"
+  ],
+  "author": "Member 3 - GIS Team",
+  "license": "MIT",
+  "dependencies": {
+    "bull": "^4.12.0",
+    "express": "^4.18.2",
+    "ioredis": "^5.3.2",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0"
+  }
+}
