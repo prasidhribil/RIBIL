@@ -16,6 +16,7 @@ import logging
 from app.database import get_db
 from app.cache import get_cache
 from app.routers.gis import get_cdp_zone_from_lulc, get_aai_zone_info
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class CDPZoneCheck(BaseModel):
     zone_name: Optional[str] = None
     zone_code: Optional[str] = None
     in_zone: bool = False
+    message: Optional[str] = None
 
 
 class LakeBufferCheck(BaseModel):
@@ -40,6 +42,7 @@ class LakeBufferCheck(BaseModel):
     is_warning: bool = Field(default=False, description="75-150m - NOC required")
     nearest_lake: Optional[str] = None
     distance_meters: Optional[float] = None
+    message: Optional[str] = None
 
 
 class NGTCheck(BaseModel):
@@ -47,6 +50,7 @@ class NGTCheck(BaseModel):
     has_violations: bool = False
     case_count: int = 0
     cases: list[Dict[str, Any]] = Field(default_factory=list)
+    message: Optional[str] = None
 
 
 class AAIZoneCheck(BaseModel):
@@ -55,6 +59,7 @@ class AAIZoneCheck(BaseModel):
     airport_name: Optional[str] = None
     restriction_type: Optional[str] = None
     height_limit_meters: Optional[float] = None
+    note: Optional[str] = None
 
 
 class ZoneCheckResponse(BaseModel):
@@ -86,44 +91,54 @@ async def check_cdp_zone(pool, lat: float, lng: float, cache = None) -> CDPZoneC
     Returns:
         CDP zone information
     """
-    # Try LULC mapping first
-    cdp_zone = await get_cdp_zone_from_lulc(lat, lng, cache)
-    
-    if cdp_zone:
-        return CDPZoneCheck(
-            zone_type=cdp_zone["zone_type"],
-            zone_name=cdp_zone["zone_name"],
-            zone_code=cdp_zone.get("lulc_code"),
-            in_zone=cdp_zone["in_zone"]
-        )
-    
-    # Fallback to PostGIS query
-    async with pool.acquire() as conn:
-        query = """
-            SELECT zone_type, zone_name, zone_code
-            FROM cdp_zones
-            WHERE ST_Contains(
-                geom,
-                ST_SetSRID(ST_Point($1, $2), 4326)
-            )
-            LIMIT 1
-        """
+    try:
+        # Try LULC mapping first
+        cdp_zone = await get_cdp_zone_from_lulc(lat, lng, cache)
         
-        result = await conn.fetchrow(query, lng, lat)
-        
-        if result:
+        if cdp_zone:
             return CDPZoneCheck(
-                zone_type=result["zone_type"],
-                zone_name=result["zone_name"],
-                zone_code=result["zone_code"],
-                in_zone=True
+                zone_type=cdp_zone["zone_type"],
+                zone_name=cdp_zone["zone_name"],
+                zone_code=cdp_zone.get("lulc_code"),
+                in_zone=cdp_zone["in_zone"]
             )
         
+        # Fallback to PostGIS query
+        async with pool.acquire() as conn:
+            query = """
+                SELECT zone_type, zone_name, zone_code
+                FROM cdp_zones
+                WHERE ST_Contains(
+                    geom,
+                    ST_SetSRID(ST_Point($1, $2), 4326)
+                )
+                LIMIT 1
+            """
+            
+            result = await conn.fetchrow(query, lng, lat)
+            
+            if result:
+                return CDPZoneCheck(
+                    zone_type=result["zone_type"],
+                    zone_name=result["zone_name"],
+                    zone_code=result["zone_code"],
+                    in_zone=True
+                )
+            
+            return CDPZoneCheck(
+                zone_type="Unknown",
+                zone_name=None,
+                zone_code=None,
+                in_zone=False
+            )
+    except Exception as e:
+        logger.warning(f"CDP zone check error: {e}")
         return CDPZoneCheck(
             zone_type="Unknown",
             zone_name=None,
             zone_code=None,
-            in_zone=False
+            in_zone=False,
+            message="CDP zone service temporarily unavailable"
         )
 
 
@@ -143,55 +158,64 @@ async def check_lake_buffer(pool, lat: float, lng: float) -> LakeBufferCheck:
     Returns:
         Lake buffer check result
     """
-    async with pool.acquire() as conn:
-        # Find nearest lake within 10km (increased from 150m to find any nearby lake)
-        query = """
-            SELECT 
-                lake_name,
-                ST_Distance(
+    try:
+        async with pool.acquire() as conn:
+            # Find nearest lake within 10km (increased from 150m to find any nearby lake)
+            query = """
+                SELECT 
+                    lake_name,
+                    ST_Distance(
+                        geom::geography,
+                        ST_SetSRID(ST_Point($1, $2), 4326)::geography
+                    ) as distance_meters
+                FROM water_bodies
+                WHERE ST_DWithin(
                     geom::geography,
-                    ST_SetSRID(ST_Point($1, $2), 4326)::geography
-                ) as distance_meters
-            FROM water_bodies
-            WHERE ST_DWithin(
-                geom::geography,
-                ST_SetSRID(ST_Point($1, $2), 4326)::geography,
-                10000  -- 10km search radius to find nearest lake
-            )
-            ORDER BY distance_meters ASC
-            LIMIT 1
-        """
+                    ST_SetSRID(ST_Point($1, $2), 4326)::geography,
+                    10000  -- 10km search radius to find nearest lake
+                )
+                ORDER BY distance_meters ASC
+                LIMIT 1
+            """
+            
+            result = await conn.fetchrow(query, lng, lat)
         
-        result = await conn.fetchrow(query, lng, lat)
-    
-    if result:
-        distance = result["distance_meters"]
-        lake_name = result["lake_name"] or "Unnamed Lake"
+        if result:
+            distance = result["distance_meters"]
+            lake_name = result["lake_name"] or "Unnamed Lake"
+            
+            if distance <= 75:
+                return LakeBufferCheck(
+                    is_blocked=True,
+                    is_warning=False,
+                    nearest_lake=lake_name,
+                    distance_meters=distance
+                )
+            elif distance <= 150:
+                return LakeBufferCheck(
+                    is_blocked=False,
+                    is_warning=True,
+                    nearest_lake=lake_name,
+                    distance_meters=distance
+                )
+            else:
+                # Lake found but outside buffer zone
+                return LakeBufferCheck(
+                    is_blocked=False,
+                    is_warning=False,
+                    nearest_lake=lake_name,
+                    distance_meters=distance
+                )
         
-        if distance <= 75:
-            return LakeBufferCheck(
-                is_blocked=True,
-                is_warning=False,
-                nearest_lake=lake_name,
-                distance_meters=distance
-            )
-        elif distance <= 150:
-            return LakeBufferCheck(
-                is_blocked=False,
-                is_warning=True,
-                nearest_lake=lake_name,
-                distance_meters=distance
-            )
-        else:
-            # Lake found but outside buffer zone
-            return LakeBufferCheck(
-                is_blocked=False,
-                is_warning=False,
-                nearest_lake=lake_name,
-                distance_meters=distance
-            )
-    
-    return LakeBufferCheck(is_blocked=False, is_warning=False)
+        return LakeBufferCheck(is_blocked=False, is_warning=False)
+    except Exception as e:
+        logger.warning(f"Lake buffer check error: {e}")
+        return LakeBufferCheck(
+            is_blocked=False,
+            is_warning=False,
+            nearest_lake=None,
+            message="Lake data temporarily unavailable"
+        )
 
 
 async def check_ngt_orders(pool, lat: float, lng: float) -> NGTCheck:
@@ -208,56 +232,65 @@ async def check_ngt_orders(pool, lat: float, lng: float) -> NGTCheck:
     Returns:
         NGT violation check result
     """
-    async with pool.acquire() as conn:
-        # First, get the village from karnataka_admin using reverse geocoding
-        # This is a simplified version - in production, use the location resolve endpoint
-        village_query = """
-            SELECT village
-            FROM karnataka_admin
-            WHERE village ILIKE '%Bengaluru%' OR village ILIKE '%Bangalore%'
-            LIMIT 1
-        """
+    try:
+        async with pool.acquire() as conn:
+            # First, get the village from karnataka_admin using reverse geocoding
+            # This is a simplified version - in production, use the location resolve endpoint
+            village_query = """
+                SELECT village
+                FROM karnataka_admin
+                WHERE village ILIKE '%Bengaluru%' OR village ILIKE '%Bangalore%'
+                LIMIT 1
+            """
+            
+            village_result = await conn.fetchrow(village_query)
+            village = village_result["village"] if village_result else None
+            
+            if not village:
+                return NGTCheck(has_violations=False, case_count=0)
+            
+            # Check for NGT cases in this village
+            query = """
+                SELECT 
+                    case_number,
+                    survey_no,
+                    violation_type,
+                    status,
+                    order_date,
+                    description
+                FROM court_cases
+                WHERE village ILIKE $1
+                AND status = 'Active'
+                ORDER BY order_date DESC
+            """
+            
+            results = await conn.fetch(query, f"%{village}%")
         
-        village_result = await conn.fetchrow(village_query)
-        village = village_result["village"] if village_result else None
+        cases = [
+            {
+                "case_number": row["case_number"],
+                "survey_no": row["survey_no"],
+                "violation_type": row["violation_type"],
+                "status": row["status"],
+                "order_date": str(row["order_date"]) if row["order_date"] else None,
+                "description": row["description"]
+            }
+            for row in results
+        ]
         
-        if not village:
-            return NGTCheck(has_violations=False, case_count=0)
-        
-        # Check for NGT cases in this village
-        query = """
-            SELECT 
-                case_number,
-                survey_no,
-                violation_type,
-                status,
-                order_date,
-                description
-            FROM court_cases
-            WHERE village ILIKE $1
-            AND status = 'Active'
-            ORDER BY order_date DESC
-        """
-        
-        results = await conn.fetch(query, f"%{village}%")
-    
-    cases = [
-        {
-            "case_number": row["case_number"],
-            "survey_no": row["survey_no"],
-            "violation_type": row["violation_type"],
-            "status": row["status"],
-            "order_date": str(row["order_date"]) if row["order_date"] else None,
-            "description": row["description"]
-        }
-        for row in results
-    ]
-    
-    return NGTCheck(
-        has_violations=len(cases) > 0,
-        case_count=len(cases),
-        cases=cases
-    )
+        return NGTCheck(
+            has_violations=len(cases) > 0,
+            case_count=len(cases),
+            cases=cases
+        )
+    except Exception as e:
+        logger.warning(f"NGT orders check error: {e}")
+        return NGTCheck(
+            has_violations=False,
+            case_count=0,
+            cases=[],
+            message="NGT check temporarily unavailable"
+        )
 
 
 async def check_aai_zone(pool, lat: float, lng: float, cache = None) -> AAIZoneCheck:
@@ -276,15 +309,22 @@ async def check_aai_zone(pool, lat: float, lng: float, cache = None) -> AAIZoneC
     Returns:
         AAI zone check result
     """
-    # Use analytical calculation
-    aai_info = await get_aai_zone_info(lat, lng, cache)
-    
-    return AAIZoneCheck(
-        in_restriction_zone=aai_info["is_in_restriction_zone"],
-        airport_name=aai_info["airport_name"],
-        restriction_type=aai_info["restriction_type"] if aai_info["restriction_type"] != "None" else None,
-        height_limit_meters=aai_info["height_limit_meters"]
-    )
+    try:
+        # Use analytical calculation
+        aai_info = await get_aai_zone_info(lat, lng, cache)
+        
+        return AAIZoneCheck(
+            in_restriction_zone=aai_info["is_in_restriction_zone"],
+            airport_name=aai_info["airport_name"],
+            restriction_type=aai_info["restriction_type"] if aai_info["restriction_type"] != "None" else None,
+            height_limit_meters=aai_info["height_limit_meters"]
+        )
+    except Exception as e:
+        logger.warning(f"AAI zone check error: {e}")
+        return AAIZoneCheck(
+            in_restriction_zone=False,
+            note="AAI check failed"
+        )
 
 
 # ============================================================================
@@ -315,12 +355,18 @@ async def zone_check(
         Composite zone check results with overall status
     """
     # Check cache first
-    cached_result = await cache.get(lat, lng, "zone-check")
-    if cached_result:
-        logger.info(f"Cache hit for zone check: {lat}, {lng}")
-        return ZoneCheckResponse(**cached_result)
+    lat_rounded = round(lat, 6)
+    lng_rounded = round(lng, 6)
+    cache_key = f"gis_cache:zone-check:{lat_rounded}:{lng_rounded}"
     
-    # Run all four checks in parallel
+    cached_result = await cache.get_key(cache_key)
+    if cached_result:
+        logger.info(f"Cache HIT for zone check: {cache_key}")
+        return ZoneCheckResponse(**cached_result)
+    else:
+        logger.info(f"Cache MISS for zone check: {cache_key}")
+    
+    # Run all four checks in parallel with 10-second timeout each
     logger.info(f"Running parallel zone checks for: {lat}, {lng}")
     
     # Get the pool from Database class
@@ -328,10 +374,10 @@ async def zone_check(
     pool = Database.pool
     
     cdp_result, lake_result, ngt_result, aai_result = await asyncio.gather(
-        check_cdp_zone(pool, lat, lng, cache),
-        check_lake_buffer(pool, lat, lng),
-        check_ngt_orders(pool, lat, lng),
-        check_aai_zone(pool, lat, lng, cache),
+        asyncio.wait_for(check_cdp_zone(pool, lat, lng, cache), timeout=10.0),
+        asyncio.wait_for(check_lake_buffer(pool, lat, lng), timeout=10.0),
+        asyncio.wait_for(check_ngt_orders(pool, lat, lng), timeout=10.0),
+        asyncio.wait_for(check_aai_zone(pool, lat, lng, cache), timeout=10.0),
         return_exceptions=True
     )
     
@@ -380,7 +426,7 @@ async def zone_check(
     }
     
     # Cache the result
-    await cache.set(lat, lng, response_data, "zone-check")
+    await cache.set_key(cache_key, response_data, ttl=settings.CACHE_TTL_SECONDS)
     
     logger.info(f"Zone check completed with status: {overall_status}")
     

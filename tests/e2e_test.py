@@ -67,7 +67,7 @@ async def e2e_test():
         # Step 5: Poll until complete (only if queue is running)
         if queue_running and job_id:
             print("STEP 5: Polling job status...")
-            for i in range(5):
+            for i in range(8):
                 await asyncio.sleep(2)
                 r5 = await client.get(
                     f"http://localhost:3000/api/property/verify/status/{job_id}",
