@@ -9,8 +9,9 @@ services:
       POSTGRES_DB: gis_engine
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/migrations:/docker-entrypoint-initdb.d
@@ -22,22 +23,22 @@ services:
     networks:
       - gis_network
 
-  # Redis cache - DISABLED - using native Windows Redis instead
-  # redis:
-  #   image: redis:7-alpine
-  #   platform: linux/amd64
-  #   container_name: gis_redis
-  #   ports:
-  #     - "6379:6379"
-  #   volumes:
-  #     - redis_data:/data
-  #   healthcheck:
-  #     test: ["CMD", "redis-cli", "ping"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #   networks:
-  #     - gis_network
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    platform: linux/amd64
+    container_name: gis_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gis_network
 
 volumes:
   postgres_data:

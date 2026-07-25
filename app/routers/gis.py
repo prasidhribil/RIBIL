@@ -13,10 +13,12 @@ from typing import Optional
 import logging
 import httpx
 import math
+import json
 from app.database import get_db
 from app.cache import get_cache
 from app.config import settings
 from app.services.ngt_scraper import scrape_ngt_cases
+from app.services.bhoomi_survey import resolve_survey_number, find_bhoomi_village_codes
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,9 @@ class SurveyNumberResponse(BaseModel):
     district: Optional[str] = None
     area_acres: Optional[float] = None
     message: Optional[str] = None
+    village_verified: Optional[bool] = None
+    village_source: Optional[str] = None
+    kgis_village: Optional[str] = None
 
 
 class LakeResponse(BaseModel):
@@ -150,6 +155,10 @@ class LandUseResponse(BaseModel):
 async def get_survey_number(
     latitude: float = Query(..., ge=-90, le=90, description="Latitude in decimal degrees"),
     longitude: float = Query(..., ge=-180, le=180, description="Longitude in decimal degrees"),
+    district: Optional[str] = Query(None, description="District code (e.g., '20') for Bhoomi Maps"),
+    taluk: Optional[str] = Query(None, description="Taluk code (e.g., '3') for Bhoomi Maps"),
+    hobli: Optional[str] = Query(None, description="Hobli code (e.g., '5') for Bhoomi Maps"),
+    village: Optional[str] = Query(None, description="Village code (e.g., '2') for Bhoomi Maps"),
     conn = Depends(get_db),
     cache = Depends(get_cache)
 ):
@@ -159,11 +168,16 @@ async def get_survey_number(
     Lookup order:
     1. Redis cache (gis_cache:survey-number:{lat}:{lng})
     2. KGIS live service
-    3. PostGIS ST_Contains query on survey_parcels
+    3. Bhoomi Maps API (if village codes provided)
+    4. PostGIS ST_Contains query on survey_parcels
 
     Args:
         latitude: Latitude between -90 and 90
         longitude: Longitude between -180 and 180
+        district: Optional district code for Bhoomi Maps
+        taluk: Optional taluk code for Bhoomi Maps
+        hobli: Optional hobli code for Bhoomi Maps
+        village: Optional village code for Bhoomi Maps
 
     Returns:
         Survey parcel information if found, or error message if all sources fail
@@ -178,7 +192,7 @@ async def get_survey_number(
         cached_data = await cache.get_key(cache_key)
         if cached_data:
             logger.info(f"Cache HIT for survey number: {cache_key}")
-            return SurveyNumberResponse(**cached_data)
+            return SurveyNumberResponse(**json.loads(cached_data))
         else:
             logger.info(f"Cache MISS for survey number: {cache_key}")
     except Exception as e:
@@ -189,19 +203,95 @@ async def get_survey_number(
     if kgis_result:
         # Store in cache with 48-hour TTL
         try:
-            await cache.set_key(cache_key, kgis_result.dict(), ttl=settings.CACHE_TTL_SECONDS)
+            await cache.set_key(cache_key, json.dumps(kgis_result.dict()), ttl=settings.CACHE_TTL_SECONDS)
             logger.info(f"Stored survey number in cache: {cache_key}")
         except Exception as e:
             logger.warning(f"Redis cache set error: {e}")
         
         return kgis_result
     
-    # Step 3: Fall back to PostGIS ST_Contains query
+    # Step 3: Try Bhoomi Maps API
+    # If village codes are not provided, auto-resolve them using location/resolve
+    kgis_village_name = None
+    if not (district and taluk and hobli and village):
+        logger.info("Village codes not provided, resolving from location/resolve...")
+        try:
+            from app.routers.location import LocationRequest
+            from app.routers.gis import get_admin_hierarchy_from_kgis
+            
+            # Call KGIS directly to get village name
+            kgis_result = await get_admin_hierarchy_from_kgis(latitude, longitude, cache)
+            if kgis_result:
+                village_name = kgis_result.get("village")
+                district_name = kgis_result.get("district")
+                kgis_village_name = village_name  # Store for later use in response
+                
+                if village_name and district_name:
+                    logger.info(f"Resolved location: village={village_name}, district={district_name}")
+                    bhoomi_codes = await find_bhoomi_village_codes(village_name, district_name)
+                    if bhoomi_codes:
+                        district = bhoomi_codes["district"]
+                        taluk = bhoomi_codes["taluk"]
+                        hobli = bhoomi_codes["hobli"]
+                        village = bhoomi_codes["village"]
+                        logger.info(f"Auto-resolved Bhoomi codes: {bhoomi_codes}")
+                    else:
+                        logger.warning(f"Could not find Bhoomi codes for {village_name}")
+        except Exception as e:
+            logger.warning(f"Error resolving location for Bhoomi codes: {e}")
+    
+    # Try Bhoomi Maps API if we have village codes
+    if district and taluk and hobli and village:
+        logger.info(f"Trying Bhoomi Maps with village codes: district={district}, taluk={taluk}, hobli={hobli}, village={village}")
+        bhoomi_result = await resolve_survey_number(
+            latitude, longitude, district, taluk, hobli, village, cache
+        )
+        if bhoomi_result:
+            # Update location cache with correct Bhoomi village name
+            if bhoomi_result and bhoomi_result.get("village"):
+                correct_village = bhoomi_result["village"]
+                location_cache_key = f"gis_cache:resolve:{lat_rounded}:{lng_rounded}"
+                cached = await cache.get_key(location_cache_key)
+                if cached:
+                    # Handle both old dict format and new JSON string format
+                    if isinstance(cached, dict):
+                        loc_data = cached
+                    else:
+                        loc_data = json.loads(cached)
+                    loc_data["village"] = correct_village
+                    loc_data["village_source"] = "bhoomi_verified"
+                    await cache.set_key(location_cache_key, json.dumps(loc_data), ttl=86400)
+                    logger.info(f"Updated location cache with Bhoomi village: {correct_village}")
+            
+            # Map Bhoomi result to SurveyNumberResponse with both village names
+            response = SurveyNumberResponse(
+                success=True,
+                survey_no=bhoomi_result.get("survey_no"),
+                village=bhoomi_result.get("village"),
+                message=bhoomi_result.get("source")
+            )
+            # Add extra fields for village verification context
+            response_dict = response.dict()
+            response_dict["village_verified"] = bhoomi_result.get("village_verified", True)
+            response_dict["village_source"] = "bhoomi_maps"
+            if kgis_village_name:
+                response_dict["kgis_village"] = kgis_village_name
+            
+            # Store in cache with 48-hour TTL
+            try:
+                await cache.set_key(cache_key, json.dumps(response_dict), ttl=settings.CACHE_TTL_SECONDS)
+                logger.info(f"Stored survey number in cache: {cache_key}")
+            except Exception as e:
+                logger.warning(f"Redis cache set error: {e}")
+            
+            return SurveyNumberResponse(**response_dict)
+    
+    # Step 4: Fall back to PostGIS ST_Contains query
     postgis_result = await _get_survey_number_from_postgis(conn, longitude, latitude)
     if postgis_result:
         return postgis_result
     
-    # Step 4: All sources failed
+    # Step 5: All sources failed
     logger.error(f"All survey number sources failed for coordinates: {latitude}, {longitude}")
     return SurveyNumberResponse(
         success=False,
@@ -382,6 +472,231 @@ async def _get_survey_number_from_postgis(conn, longitude: float, latitude: floa
         return None
 
 
+async def _get_survey_number_from_bhoomi(
+    latitude: float, 
+    longitude: float,
+    district: str,
+    taluk: str,
+    hobli: str,
+    village: str,
+    cache = None
+) -> Optional[SurveyNumberResponse]:
+    """
+    Get survey number from Bhoomi Maps API using village codes.
+    
+    Fetches village parcels from Bhoomi Maps and performs point-in-polygon
+    lookup to find the survey number for the given coordinates.
+    
+    Args:
+        latitude: Latitude in decimal degrees
+        longitude: Longitude in decimal degrees
+        district: District code (e.g., "20")
+        taluk: Taluk code (e.g., "3")
+        hobli: Hobli code (e.g., "5")
+        village: Village code (e.g., "2")
+        cache: Optional cache dependency for caching results
+        
+    Returns:
+        SurveyNumberResponse or None if Bhoomi fails
+    """
+    try:
+        # Generate cache key based on village codes
+        cache_key = f"bhoomi:village_parcels:{district}:{taluk}:{hobli}:{village}"
+        
+        # Check cache first if cache is provided
+        if cache:
+            try:
+                cached_data = await cache.get_key(cache_key)
+                if cached_data:
+                    logger.info(f"Cache HIT for Bhoomi village parcels: {cache_key}")
+                    # Parse cached GeoJSON and find survey number
+                    return _find_survey_in_geojson(json.loads(cached_data), latitude, longitude)
+                else:
+                    logger.info(f"Cache MISS for Bhoomi village parcels: {cache_key}")
+            except Exception as e:
+                logger.warning(f"Redis cache error for Bhoomi: {e}")
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://bhoomi.karnataka.gov.in",
+            "Origin": "https://bhoomi.karnataka.gov.in"
+        }
+        
+        # Build Bhoomi Maps API URL with village codes
+        bhoomi_url = settings.BHOOMI_MAPS_URL
+        params = {
+            "district": district,
+            "taluk": taluk,
+            "hobli": hobli,
+            "village": village,
+            "format": "geojson"
+        }
+        
+        async with httpx.AsyncClient(verify=False, timeout=30.0) as client:
+            response = await client.get(bhoomi_url, params=params, headers=headers)
+            response.raise_for_status()
+            
+            # Parse JSON response
+            raw_data = response.json()
+            
+            # Handle double-encoded GeoJSON (escaped JSON string inside JSON array)
+            if isinstance(raw_data, list) and len(raw_data) > 0:
+                first_item = raw_data[0]
+                if isinstance(first_item, dict) and "GeoJson" in first_item:
+                    # GeoJson field is a string that needs to be parsed again
+                    geojson_str = first_item["GeoJson"]
+                    if isinstance(geojson_str, str):
+                        logger.info("Detected double-encoded GeoJSON, parsing nested string")
+                        geojson_data = json.loads(geojson_str)
+                    else:
+                        geojson_data = geojson_str
+                else:
+                    geojson_data = raw_data
+            else:
+                geojson_data = raw_data
+            
+            # Cache the GeoJSON data with 24-hour TTL (86400 seconds)
+            if cache:
+                try:
+                    await cache.set_key(cache_key, json.dumps(geojson_data), ttl=86400)
+                    logger.info(f"Stored Bhoomi village parcels in cache: {cache_key}")
+                except Exception as e:
+                    logger.warning(f"Redis cache set error for Bhoomi: {e}")
+            
+            # Find survey number using point-in-polygon
+            result = _find_survey_in_geojson(geojson_data, latitude, longitude)
+            
+            if result:
+                logger.info(f"Bhoomi survey number found: {result.survey_no}")
+                return result
+            else:
+                logger.info(f"No matching parcel found in Bhoomi data for coordinates: {latitude}, {longitude}")
+                return None
+            
+    except httpx.TimeoutException:
+        logger.warning(f"Bhoomi API timeout for coordinates: {latitude}, {longitude}")
+        return None
+        
+    except httpx.HTTPStatusError as e:
+        logger.warning(f"Bhoomi API HTTP error: {e.response.status_code}")
+        return None
+        
+    except httpx.RequestError as e:
+        logger.warning(f"Bhoomi API request error: {e}")
+        return None
+        
+    except json.JSONDecodeError as e:
+        logger.warning(f"Bhoomi API JSON decode error: {e}")
+        return None
+        
+    except Exception as e:
+        logger.warning(f"Bhoomi API unexpected error: {e}")
+        return None
+
+
+def _find_survey_in_geojson(geojson_data: dict, latitude: float, longitude: float) -> Optional[SurveyNumberResponse]:
+    """
+    Find survey number in GeoJSON data using point-in-polygon lookup.
+    
+    Args:
+        geojson_data: GeoJSON FeatureCollection
+        latitude: Latitude in decimal degrees
+        longitude: Longitude in decimal degrees
+        
+    Returns:
+        SurveyNumberResponse or None if no matching parcel found
+    """
+    try:
+        features = geojson_data.get("features", [])
+        
+        if not features:
+            logger.warning("No features found in Bhoomi GeoJSON response")
+            return None
+        
+        # Print first feature properties for debugging (check property names)
+        if features:
+            first_props = features[0].get("properties", {})
+            logger.info(f"First feature properties: {list(first_props.keys())}")
+        
+        # Point-in-polygon check for each feature
+        point = (longitude, latitude)  # GeoJSON uses (lon, lat) order
+        
+        for feature in features:
+            geometry = feature.get("geometry")
+            properties = feature.get("properties", {})
+            
+            if not geometry or geometry.get("type") != "Polygon":
+                continue
+            
+            coordinates = geometry.get("coordinates", [])
+            if not coordinates:
+                continue
+            
+            # Check if point is inside polygon using ray casting algorithm
+            polygon = coordinates[0]  # Exterior ring
+            if _point_in_polygon(point, polygon):
+                # Extract survey number from properties
+                # Try common property name variations
+                survey_no = (
+                    properties.get("SurveyNo") or
+                    properties.get("SURVEY_NO") or
+                    properties.get("surveyno") or
+                    properties.get("survey_no") or
+                    properties.get("Survey_Number") or
+                    properties.get("surveyNumber")
+                )
+                
+                if survey_no:
+                    return SurveyNumberResponse(
+                        success=True,
+                        survey_no=str(survey_no),
+                        village=properties.get("village") or properties.get("Village"),
+                        hobli=properties.get("hobli") or properties.get("Hobli"),
+                        district=properties.get("district") or properties.get("District"),
+                        area_acres=properties.get("area_acres") or properties.get("AreaAcres"),
+                        message="Survey number from Bhoomi Maps"
+                    )
+        
+        # No polygon contains the point
+        logger.info(f"Point not found in any Bhoomi parcel polygon")
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error parsing Bhoomi GeoJSON: {e}")
+        return None
+
+
+def _point_in_polygon(point: tuple, polygon: list) -> bool:
+    """
+    Ray casting algorithm to check if point is inside polygon.
+    
+    Args:
+        point: (longitude, latitude) tuple
+        polygon: List of [(longitude, latitude)] tuples forming polygon exterior
+        
+    Returns:
+        True if point is inside polygon, False otherwise
+    """
+    x, y = point
+    n = len(polygon)
+    inside = False
+    
+    p1x, p1y = polygon[0]
+    for i in range(n + 1):
+        p2x, p2y = polygon[i % n]
+        if y > min(p1y, p2y):
+            if y <= max(p1y, p2y):
+                if x <= max(p1x, p2x):
+                    if p1y != p2y:
+                        xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                    if p1x == p2x or x <= xinters:
+                        inside = not inside
+        p1x, p1y = p2x, p2y
+    
+    return inside
+
+
 @router.get("/lake-nearest", response_model=LakeResponse)
 async def get_nearest_lake(
     lat: float = Query(..., ge=-90, le=90, description="Latitude in decimal degrees"),
@@ -413,7 +728,7 @@ async def get_nearest_lake(
     cached_result = await cache.get_key(cache_key)
     if cached_result:
         logger.info(f"Cache HIT for nearest lake: {cache_key}")
-        return LakeResponse(**cached_result)
+        return LakeResponse(**json.loads(cached_result))
     else:
         logger.info(f"Cache MISS for nearest lake: {cache_key}")
     
@@ -468,7 +783,7 @@ async def get_nearest_lake(
         )
         
         # Cache the result
-        await cache.set_key(cache_key, response_data, ttl=settings.CACHE_TTL_SECONDS)
+        await cache.set_key(cache_key, json.dumps(response_data), ttl=settings.CACHE_TTL_SECONDS)
         
         return LakeResponse(**response_data)
     
@@ -1072,7 +1387,7 @@ async def get_cdp_zone_from_lulc(lat: float, lng: float, cache = None) -> Option
             cached_data = await cache.get_key(cache_key)
             if cached_data:
                 logger.info(f"Cache HIT for CDP zone: {cache_key}")
-                return cached_data
+                return json.loads(cached_data)
             else:
                 logger.info(f"Cache MISS for CDP zone: {cache_key}")
         except Exception as e:
@@ -1125,7 +1440,7 @@ async def get_cdp_zone_from_lulc(lat: float, lng: float, cache = None) -> Option
     # Cache the result if cache is provided
     if cache:
         try:
-            await cache.set_key(cache_key, result, ttl=settings.CACHE_TTL_SECONDS)
+            await cache.set_key(cache_key, json.dumps(result), ttl=settings.CACHE_TTL_SECONDS)
             logger.info(f"Stored CDP zone in cache: {cache_key}")
         except Exception as e:
             logger.warning(f"Redis cache set error for CDP zone: {e}")
@@ -1183,7 +1498,7 @@ async def get_aai_zone_info(lat: float, lng: float, cache = None) -> dict:
             cached_data = await cache.get_key(cache_key)
             if cached_data:
                 logger.info(f"Cache HIT for AAI zone: {cache_key}")
-                return cached_data
+                return json.loads(cached_data)
             else:
                 logger.info(f"Cache MISS for AAI zone: {cache_key}")
         except Exception as e:
@@ -1240,7 +1555,7 @@ async def get_aai_zone_info(lat: float, lng: float, cache = None) -> dict:
     # Cache the result if cache is provided (7 days TTL)
     if cache:
         try:
-            await cache.set_key(cache_key, result, ttl=604800)  # 7 days = 604800 seconds
+            await cache.set_key(cache_key, json.dumps(result), ttl=604800)  # 7 days = 604800 seconds
             logger.info(f"Stored AAI zone in cache: {cache_key}")
         except Exception as e:
             logger.warning(f"Redis cache set error for AAI zone: {e}")
@@ -1254,7 +1569,7 @@ async def get_aai_zone_info(lat: float, lng: float, cache = None) -> dict:
 
 async def get_admin_hierarchy_from_kgis(lat: float, lng: float, cache = None) -> Optional[dict]:
     """
-    Get administrative hierarchy (district, taluk, hobli) from KGIS nearbyadminhierarchy endpoint.
+    Get administrative hierarchy (district, taluk, hobli, village) from KGIS nearbyadminhierarchy endpoint.
     
     Args:
         lat: Latitude in decimal degrees
@@ -1262,7 +1577,7 @@ async def get_admin_hierarchy_from_kgis(lat: float, lng: float, cache = None) ->
         cache: Optional cache dependency for caching results
         
     Returns:
-        Dictionary with district, taluk, hobli if successful, None on failure
+        Dictionary with district, taluk, hobli, village if successful, None on failure
     """
     # Round coordinates to 6 decimal places for cache key
     lat_rounded = round(lat, 6)
@@ -1275,7 +1590,7 @@ async def get_admin_hierarchy_from_kgis(lat: float, lng: float, cache = None) ->
             cached_data = await cache.get_key(cache_key)
             if cached_data:
                 logger.info(f"Cache HIT for admin hierarchy: {cache_key}")
-                return cached_data
+                return json.loads(cached_data)
             else:
                 logger.info(f"Cache MISS for admin hierarchy: {cache_key}")
         except Exception as e:
@@ -1283,11 +1598,18 @@ async def get_admin_hierarchy_from_kgis(lat: float, lng: float, cache = None) ->
     
     try:
         # Build KGIS API URL with query parameters
-        params = {
+        # Call both aoi=d (district) and aoi=v (village) to get complete hierarchy
+        params_d = {
             "coordinates": f"{lat},{lng}",
-            "distance": 10000,  # Changed from 5000 to 10000
+            "distance": 10000,
             "type": "DD",
-            "aoi": "d"  # Changed from d,t,h to d only (t,h return empty)
+            "aoi": "d"
+        }
+        params_v = {
+            "coordinates": f"{lat},{lng}",
+            "distance": 10000,
+            "type": "DD",
+            "aoi": "v"
         }
         
         headers = {
@@ -1297,34 +1619,33 @@ async def get_admin_hierarchy_from_kgis(lat: float, lng: float, cache = None) ->
             "Origin": "https://kgis.ksrsac.in"
         }
         
-        logger.info(f"DEBUG: Calling KGIS API with params: {params}")
+        logger.info(f"DEBUG: Calling KGIS API with params_d and params_v")
         
         # Call KGIS API with timeout and browser headers
         async with httpx.AsyncClient(verify=False, timeout=15.0) as client:
-            response = await client.get(settings.KGIS_ADMIN_URL, params=params, headers=headers)
-            logger.info(f"DEBUG: KGIS API response status: {response.status_code}")
-            response.raise_for_status()
+            # Call aoi=d for district
+            response_d = await client.get(settings.KGIS_ADMIN_URL, params=params_d, headers=headers)
+            logger.info(f"DEBUG: KGIS API aoi=d response status: {response_d.status_code}")
+            response_d.raise_for_status()
+            kgis_data_d = response_d.json()
+            logger.info(f"DEBUG: KGIS API aoi=d response data: {kgis_data_d}")
             
-            # Parse JSON response
-            kgis_data = response.json()
-            logger.info(f"DEBUG: KGIS API response data: {kgis_data}")
+            # Call aoi=v for village
+            response_v = await client.get(settings.KGIS_ADMIN_URL, params=params_v, headers=headers)
+            logger.info(f"DEBUG: KGIS API aoi=v response status: {response_v.status_code}")
+            response_v.raise_for_status()
+            kgis_data_v = response_v.json()
+            logger.info(f"DEBUG: KGIS API aoi=v raw response: {kgis_data_v}")
+            if kgis_data_v and len(kgis_data_v) > 0:
+                logger.info(f"DEBUG: First village item keys: {list(kgis_data_v[0].keys())}")
+                logger.info(f"DEBUG: First village item full: {kgis_data_v[0]}")
             
-            if not kgis_data or not isinstance(kgis_data, list):
-                logger.warning(f"KGIS admin hierarchy returned invalid data: {kgis_data}")
-                return None
-            
-            if len(kgis_data) == 0:
-                logger.warning(f"KGIS admin hierarchy returned empty array")
-                return None
-            
-            # Extract district from response array
-            # Response format: [{"districtName":"X","districtCode":"Y"},...]
-            # Prefer "Bengaluru (Urban)" if available, otherwise use first entry
+            # Parse district from aoi=d response
             district = None
             district_code = None
-            for item in kgis_data:
-                if "districtName" in item:
-                    if "Bengaluru (Urban)" in item["districtName"]:
+            if kgis_data_d and isinstance(kgis_data_d, list) and len(kgis_data_d) > 0:
+                for item in kgis_data_d:
+                    if "Bengaluru (Urban)" in item.get("districtName", ""):
                         district = item["districtName"]
                         district_code = item.get("districtCode")
                         break
@@ -1332,27 +1653,38 @@ async def get_admin_hierarchy_from_kgis(lat: float, lng: float, cache = None) ->
                         district = item["districtName"]
                         district_code = item.get("districtCode")
             
+            # Parse village from aoi=v response (first village is closest)
+            village = None
+            if kgis_data_v and isinstance(kgis_data_v, list) and len(kgis_data_v) > 0:
+                # Try multiple possible field names for village
+                village = (kgis_data_v[0].get("villageName") or 
+                          kgis_data_v[0].get("VILLAGE_NAME") or
+                          kgis_data_v[0].get("villagename") or
+                          kgis_data_v[0].get("VillageName") or
+                          kgis_data_v[0].get("VILLAGE"))
+            
             if not district:
-                logger.warning(f"KGIS admin hierarchy missing district: {kgis_data}")
+                logger.warning(f"KGIS admin hierarchy missing district")
                 return None
             
             result = {
                 "district": district,
                 "districtCode": district_code,
-                "taluk": None,  # KGIS doesn't return taluk with aoi=d
-                "hobli": None,   # KGIS doesn't return hobli with aoi=d
-                "confidence_score": 0.95,
+                "taluk": None,  # KGIS doesn't provide taluk/hobli in these endpoints
+                "hobli": None,
+                "village": village,
+                "confidence_score": 0.90,
                 "source": "kgis"
             }
             
             logger.info(f"KGIS admin hierarchy found: district={result.get('district')}, "
                        f"taluk={result.get('taluk')}, hobli={result.get('hobli')}, "
-                       f"source={result.get('source')}, confidence={result.get('confidence_score')}")
+                       f"village={result.get('village')}, source={result.get('source')}, confidence={result.get('confidence_score')}")
             
             # Cache the result if cache is provided
             if cache:
                 try:
-                    await cache.set_key(cache_key, result, ttl=settings.CACHE_TTL_SECONDS)
+                    await cache.set_key(cache_key, json.dumps(result), ttl=settings.CACHE_TTL_SECONDS)
                     logger.info(f"Stored admin hierarchy in cache: {cache_key}")
                 except Exception as e:
                     logger.warning(f"Redis cache set error for admin hierarchy: {e}")

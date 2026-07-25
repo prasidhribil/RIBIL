@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # KGIS Admin Hierarchy Service
     KGIS_ADMIN_URL: str = "https://kgis.ksrsac.in:9000/genericwebservices/ws/nearbyadminhierarchy"
     
+    # Bhoomi Maps Service
+    BHOOMI_BASE_URL: str = "https://rdservices.karnataka.gov.in/BhoomiMaps/Default"
+    
     # Airport Reference Coordinates (for AAI zone calculation)
     KIAL_LAT: float = 13.1986
     KIAL_LNG: float = 77.7066

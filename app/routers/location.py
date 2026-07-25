@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 import httpx
 import logging
+import json
 from app.database import get_db
 from app.cache import get_cache
 
@@ -39,6 +40,8 @@ class LocationResponse(BaseModel):
     districtCode: Optional[str] = None
     confidence_score: float = Field(..., ge=0, le=1, description="Confidence score 0-1")
     source: str = Field(..., description="Data source: google, nominatim, kgis, or combined")
+    village_verified: bool = False
+    village_source: str = "kgis"
 
 
 class HobliListResponse(BaseModel):
@@ -320,7 +323,7 @@ async def resolve_location(
         cached_result = await cache.get_key(cache_key)
         if cached_result:
             logger.info(f"Cache HIT for location resolve: {cache_key}")
-            return LocationResponse(**cached_result)
+            return LocationResponse(**json.loads(cached_result))
         else:
             logger.info(f"Cache MISS for location resolve: {cache_key}")
     except Exception as e:
@@ -344,14 +347,15 @@ async def resolve_location(
         # Both sources succeeded - merge them
         address = nominatim_data.get("address", {})
         
-        # Extract Nominatim fields
-        taluk = address.get('city_district') or address.get('county', '')
-        hobli = address.get('suburb') or address.get('neighbourhood', '')
-        village = address.get('suburb') or address.get('neighbourhood') or address.get('village') or address.get('town', '')
+        logger.info(f"DEBUG: kgis_result village field: {kgis_result.get('village')}")
+        logger.info(f"DEBUG: kgis_result full: {kgis_result}")
         
-        # Use KGIS district (authoritative)
+        # Use KGIS hierarchy as primary (authoritative)
         district = kgis_result.get("district")
         district_code = kgis_result.get("districtCode")
+        taluk = kgis_result.get("taluk") or address.get('city_district') or address.get('county', '')
+        hobli = kgis_result.get("hobli") or address.get('suburb') or address.get('neighbourhood', '')
+        village = kgis_result.get("village") or address.get('suburb') or address.get('neighbourhood') or address.get('village') or address.get('town', '')
         
         response_data = {
             "district": district,
@@ -360,7 +364,9 @@ async def resolve_location(
             "hobli": hobli,
             "village": village,
             "confidence_score": 0.85,
-            "source": "kgis+nominatim"
+            "source": "kgis+nominatim",
+            "village_verified": False,
+            "village_source": "kgis"
         }
         
         logger.info(f"Merged KGIS+Nominatim result: district={district}, village={village}, hobli={hobli}")
@@ -370,14 +376,16 @@ async def resolve_location(
         response_data = {
             "district": kgis_result.get("district"),
             "districtCode": kgis_result.get("districtCode"),
-            "taluk": None,
-            "hobli": None,
-            "village": None,
+            "taluk": kgis_result.get("taluk"),
+            "hobli": kgis_result.get("hobli"),
+            "village": kgis_result.get("village"),
             "confidence_score": kgis_result.get("confidence_score", 0.95),
-            "source": kgis_result.get("source", "kgis")
+            "source": kgis_result.get("source", "kgis"),
+            "village_verified": False,
+            "village_source": "kgis"
         }
         
-        logger.info(f"KGIS only result: district={response_data['district']}")
+        logger.info(f"KGIS only result: district={response_data['district']}, village={response_data['village']}")
         
     elif nominatim_data:
         # Only Nominatim succeeded
@@ -395,7 +403,9 @@ async def resolve_location(
             "hobli": hobli,
             "village": village,
             "confidence_score": 0.6,
-            "source": "nominatim"
+            "source": "nominatim",
+            "village_verified": False,
+            "village_source": "kgis"
         }
         
         logger.info(f"Nominatim only result: district={district}, village={village}")
@@ -411,7 +421,7 @@ async def resolve_location(
     # Cache the result with 48-hour TTL
     try:
         from app.config import settings
-        await cache.set_key(cache_key, response_data, ttl=settings.CACHE_TTL_SECONDS)
+        await cache.set_key(cache_key, json.dumps(response_data), ttl=settings.CACHE_TTL_SECONDS)
         logger.info(f"Stored resolve result in cache: {cache_key}")
     except Exception as e:
         logger.warning(f"Redis cache set error: {e}")
